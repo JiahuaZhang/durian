@@ -1,0 +1,22 @@
+# fly.toml
+
+app = "durian-invest"
+primary_region = "iad"
+
+[build]
+  
+
+[env]
+  # Environment variables (non-sensitive)
+  # Secrets should be set via: fly secrets set KEY=value
+
+[[vm]]
+  size = "shared-cpu-1x"  # Smallest VM size for cost efficiency
+  memory = "256mb"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  # No HTTP services needed for this bot
+  # It only runs background tasks
