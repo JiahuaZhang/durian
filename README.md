@@ -183,3 +183,32 @@ Finished launching new machines
  ✔ Machine 080e6eea7203e8 [app] update finished: success
 -------
 ```
+
+```shell
+fly logs -a durian-invest
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/alpaca/data/live/websocket.py", line 135, in _start_ws
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]    await self._auth()
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/alpaca/data/live/websocket.py", line 126, in _auth
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]    raise ValueError(msg[0].get("msg", "auth failed"))
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]ValueError: connection limit exceeded
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:19,484 - INFO - starting data websocket connection
+2025-12-16T22:05:19Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:19,484 - INFO - connecting to wss://stream.data.alpaca.markets/v1beta3/crypto/us
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:35,082 - ERROR - error during websocket communication: connection limit exceeded
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]Traceback (most recent call last):
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/alpaca/data/live/websocket.py", line 343, in _run_forever
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]    await self._start_ws()
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/alpaca/data/live/websocket.py", line 135, in _start_ws
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]    await self._auth()
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/alpaca/data/live/websocket.py", line 126, in _auth
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]    raise ValueError(msg[0].get("msg", "auth failed"))
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]ValueError: connection limit exceeded
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:35,358 - INFO - starting data websocket connection
+2025-12-16T22:05:35Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:35,358 - INFO - connecting to wss://stream.data.alpaca.markets/v1beta3/crypto/us
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]2025-12-16 22:05:48,679 - ERROR - error during websocket communication:
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]Traceback (most recent call last):
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/websockets/legacy/client.py", line 654, in __await_impl__
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]    await protocol.handshake(
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]  File "/usr/local/lib/python3.11/site-packages/websockets/legacy/client.py", line 312, in handshake
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]    status_code, response_headers = await self.read_http_response()
+2025-12-16T22:05:49Z app[080e6eea7203e8] iad [info]                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+```
