@@ -1,22 +1,23 @@
 # fly.toml
+# Configuration for Durian Invest Trading Bot
 
 app = "durian-invest"
 primary_region = "iad"
 
 [build]
-  
 
 [env]
   # Environment variables (non-sensitive)
   # Secrets should be set via: fly secrets set KEY=value
 
+# App scaling configuration
+[http_service]
+  auto_stop_machines = "off"   # Keep machine running
+  auto_start_machines = false  # Don't auto-start
+  min_machines_running = 1     # Exactly 1 machine
+  processes = ["app"]
+
 [[vm]]
-  size = "shared-cpu-1x"  # Smallest VM size for cost efficiency
+  size = "shared-cpu-1x"
   memory = "256mb"
-
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-
-  # No HTTP services needed for this bot
-  # It only runs background tasks
+  processes = ["app"]
