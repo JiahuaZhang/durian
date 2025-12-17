@@ -7,8 +7,14 @@ primary_region = "iad"
 [build]
 
 [env]
-  # Environment variables (non-sensitive)
-  # Secrets should be set via: fly secrets set KEY=value
+  # Configure which strategies to run (comma-separated)
+  # Options: sma, gemini-portfolio
+  # Examples:
+  #   STRATEGIES = "sma"  # SMA only
+  #   STRATEGIES = "gemini-portfolio"  # AI portfolio only
+  #   STRATEGIES = "sma,gemini-portfolio"  # Both strategies
+  # Override via: fly secrets set STRATEGIES=...
+  STRATEGIES = "gemini-portfolio"
 
 # App scaling configuration
 [http_service]
