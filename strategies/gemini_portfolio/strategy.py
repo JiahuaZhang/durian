@@ -1,15 +1,10 @@
-"""
-Gemini AI Portfolio Strategy
-
-Scheduled strategy that rebalances a 15-asset portfolio daily using Gemini AI analysis.
-"""
-
 import os
 import asyncio
 import logging
 from typing import Dict, Any
 from datetime import datetime
 
+from dotenv import load_dotenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -23,20 +18,19 @@ from .engine import AIPortfolioStrategy as PortfolioEngine
 
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 
-class GeminiPortfolioStrategy(TradingStrategy):
-    """Gemini AI-powered portfolio rebalancing strategy."""
-    
+
+class GeminiPortfolioStrategy(TradingStrategy):   
     def __init__(self, **config):
         super().__init__(**config)
         
-        # Configuration
-        self.portfolio_size = config.get('portfolio_size', 15)
-        self.model = config.get('model', 'gemini-2.0-flash-exp')
-        self.schedule_hour = config.get('schedule_hour', 15)  # 3 PM ET
-        self.schedule_minute = config.get('schedule_minute', 45)  # :45
+        self.portfolio_size = int(config.get('portfolio_size') or os.getenv('GEMINI_PORTFOLIO_SIZE', '15'))
+        self.model = config.get('model') or os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+        self.schedule_hour = int(config.get('schedule_hour') or os.getenv('GEMINI_SCHEDULE_HOUR', '9'))
+        self.schedule_minute = int(config.get('schedule_minute') or os.getenv('GEMINI_SCHEDULE_MINUTE', '30'))
         
-        # Portfolio engine (reuses existing ai_portfolio_strategy.py)
+        self.trading_client = None
         self.portfolio_engine = None
         self.scheduler = None
         
@@ -48,19 +42,20 @@ class GeminiPortfolioStrategy(TradingStrategy):
     def get_type(self) -> str:
         return "scheduled"
     
-    async def initialize(self, trading_client: TradingClient, **kwargs):
-        """Initialize with trading client and Gemini API."""
-        self.trading_client = trading_client
-        
-        # Get API keys
+    async def initialize(self):
         alpaca_key = os.getenv("ALPACA_API_KEY")
         alpaca_secret = os.getenv("ALPACA_SECRET_KEY")
         gemini_key = os.getenv("GEMINI_API_KEY")
         
-        if not gemini_key:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
+        if not all([alpaca_key, alpaca_secret, gemini_key]):
+            raise ValueError("ALPACA_API_KEY, ALPACA_SECRET_KEY, and GEMINI_API_KEY environment variables required")
         
-        # Initialize portfolio engine
+        self.trading_client = TradingClient(
+            api_key=alpaca_key,
+            secret_key=alpaca_secret,
+            paper=True  # Paper trading
+        )
+        
         self.portfolio_engine = PortfolioEngine(
             alpaca_key=alpaca_key,
             alpaca_secret=alpaca_secret,
@@ -68,13 +63,14 @@ class GeminiPortfolioStrategy(TradingStrategy):
             portfolio_size=self.portfolio_size
         )
         
-        # Create scheduler
         self.scheduler = AsyncIOScheduler()
         
         logger.info("✅ Gemini Portfolio strategy initialized")
     
+    def is_ready(self) -> bool:
+        return self.trading_client is not None and self.portfolio_engine is not None
+    
     async def start(self):
-        """Start the daily rebalancing scheduler."""
         if not self.is_ready():
             raise RuntimeError("Strategy not initialized. Call initialize() first.")
         
@@ -82,7 +78,6 @@ class GeminiPortfolioStrategy(TradingStrategy):
         logger.info(f"🚀 Starting Gemini Portfolio strategy")
         logger.info(f"   Schedule: Daily at {self.schedule_hour}:{self.schedule_minute:02d} ET (weekdays)")
         
-        # Schedule daily rebalancing
         self.scheduler.add_job(
             self._execute_rebalance,
             CronTrigger(
@@ -95,10 +90,8 @@ class GeminiPortfolioStrategy(TradingStrategy):
             name='Daily Portfolio Rebalance'
         )
         
-        # Start scheduler
         self.scheduler.start()
         
-        # Log next run time
         job = self.scheduler.get_job('daily_rebalance')
         if job and job.trigger:
             import pytz
@@ -108,15 +101,13 @@ class GeminiPortfolioStrategy(TradingStrategy):
             if next_run:
                 logger.info(f"📅 Next rebalance: {next_run.strftime('%Y-%m-%d %I:%M %p %Z')}")
         
-        # Keep running
         try:
             while self.is_running:
-                await asyncio.sleep(60)  # Check every minute
+                await asyncio.sleep(60) 
         except asyncio.CancelledError:
             logger.info("Gemini Portfolio strategy cancelled")
     
     async def stop(self):
-        """Stop the scheduler and cleanup."""
         self.is_running = False
         logger.info("Stopping Gemini Portfolio strategy...")
         
@@ -126,25 +117,20 @@ class GeminiPortfolioStrategy(TradingStrategy):
         logger.info("✅ Gemini Portfolio strategy stopped")
     
     async def _execute_rebalance(self):
-        """Execute portfolio rebalancing."""
         try:
             logger.info("\n" + "=" * 70)
             logger.info("🤖 STARTING DAILY PORTFOLIO REBALANCING")
             logger.info("=" * 70)
             
-            # Run AI analysis
             market_analysis, scores, allocation = self.portfolio_engine.run_analysis()
             
-            # Log recommendations
             logger.info("\n📊 AI MARKET ANALYSIS:")
             logger.info(market_analysis[:500] + "..." if len(market_analysis) > 500 else market_analysis)
             
             logger.info("\n💼 RECOMMENDED PORTFOLIO:")
-            for symbol, weight in sorted(allocation.allocations.items(), 
-                                        key=lambda x: x[1], reverse=True):
+            for symbol, weight in sorted(allocation.allocations.items(), key=lambda x: x[1], reverse=True):
                 logger.info(f"   {symbol:6s}: {weight*100:5.1f}%")
             
-            # Execute rebalancing if needed
             if allocation.rebalance_required:
                 logger.info("\n🔄 Executing rebalance...")
                 await self._rebalance_portfolio(allocation.allocations)
@@ -156,12 +142,10 @@ class GeminiPortfolioStrategy(TradingStrategy):
             logger.error(f"❌ Error during rebalancing: {e}", exc_info=True)
     
     async def _rebalance_portfolio(self, target_allocations: dict):
-        """Rebalance portfolio to target allocations."""
         try:
             account = self.trading_client.get_account()
             total_equity = float(account.equity)
             
-            # Close positions not in target
             current_positions = {p.symbol: p for p in self.trading_client.get_all_positions()}
             
             for symbol in current_positions:
@@ -169,13 +153,11 @@ class GeminiPortfolioStrategy(TradingStrategy):
                     logger.info(f"🔴 Closing position: {symbol}")
                     self.trading_client.close_position(symbol)
             
-            # Calculate target dollar amounts
             target_dollars = {
                 symbol: weight * total_equity 
                 for symbol, weight in target_allocations.items()
             }
             
-            # Execute orders
             for symbol, target_value in target_dollars.items():
                 try:
                     current_value = 0
@@ -213,7 +195,6 @@ class GeminiPortfolioStrategy(TradingStrategy):
             logger.error(f"❌ Error rebalancing: {e}", exc_info=True)
     
     def get_stats(self) -> Dict[str, Any]:
-        """Get strategy statistics."""
         stats = {
             'strategy': self.get_name(),
             'portfolio_size': self.portfolio_size,
@@ -221,7 +202,6 @@ class GeminiPortfolioStrategy(TradingStrategy):
             'scheduler_running': self.scheduler.running if self.scheduler else False
         }
         
-        # Add account info
         if self.trading_client:
             try:
                 account = self.trading_client.get_account()
@@ -238,3 +218,25 @@ class GeminiPortfolioStrategy(TradingStrategy):
 
 # Register strategy
 StrategyRegistry.register('gemini-portfolio', GeminiPortfolioStrategy)
+
+
+# Standalone execution for testing
+async def main():
+    """Run Gemini Portfolio strategy standalone for testing."""
+    strategy = GeminiPortfolioStrategy()
+    
+    try:
+        await strategy.initialize()
+        await strategy.start()
+    except KeyboardInterrupt:
+        logger.info("\n🛑 Shutting down...")
+        await strategy.stop()
+        logger.info("✅ Strategy stopped")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    asyncio.run(main())

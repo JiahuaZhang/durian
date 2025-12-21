@@ -1,11 +1,7 @@
-"""
-Strategy Registry
+from typing import Dict, Type, TYPE_CHECKING
 
-Factory pattern for creating strategy instances.
-Strategies register themselves here for dynamic instantiation.
-"""
-
-from typing import Dict, Type, Any
+if TYPE_CHECKING:
+    from .base_strategy import TradingStrategy
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,10 +15,10 @@ class StrategyRegistry:
     instantiated dynamically via create().
     """
     
-    _strategies: Dict[str, Type] = {}
+    _strategies: Dict[str, Type["TradingStrategy"]] = {}
     
     @classmethod
-    def register(cls, name: str, strategy_class: Type):
+    def register(cls, name: str, strategy_class: Type["TradingStrategy"]):
         """
         Register a strategy class with a unique name.
         
@@ -37,7 +33,7 @@ class StrategyRegistry:
         logger.info(f"✅ Registered strategy: {name} -> {strategy_class.__name__}")
     
     @classmethod
-    def create(cls, name: str, **config) -> Any:
+    def create(cls, name: str, **config) -> "TradingStrategy":
         """
         Create a strategy instance by name.
         

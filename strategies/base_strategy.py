@@ -1,16 +1,8 @@
-"""
-Base Trading Strategy Interface
-
-All trading strategies must inherit from TradingStrategy and implement
-the required abstract methods.
-"""
-
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 class TradingStrategy(ABC):
     """
@@ -58,13 +50,14 @@ class TradingStrategy(ABC):
         pass
     
     @abstractmethod
-    async def initialize(self, trading_client, **kwargs):
+    async def initialize(self):
         """
-        Initialize strategy with trading client and dependencies.
+        Initialize strategy with its own trading client and configuration.
         
-        Args:
-            trading_client: Alpaca TradingClient instance
-            **kwargs: Additional initialization parameters
+        Strategies should:
+        - Load their own environment variables
+        - Create their own trading client(s)
+        - Set up any required resources
         """
         pass
     
@@ -101,10 +94,12 @@ class TradingStrategy(ABC):
         """
         Check if strategy is ready to start.
         
+        Override in subclass for custom readiness checks.
+        
         Returns:
             bool: True if strategy can be started
         """
-        return self.trading_client is not None
+        return True
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self.get_name()}>"

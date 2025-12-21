@@ -1,10 +1,3 @@
-"""
-AI-Powered Portfolio Strategy
-
-Inspired by the Grok Portfolio White Paper, adapted to use Gemini AI
-for market analysis and portfolio allocation with daily rebalancing.
-"""
-
 import os
 import logging
 from datetime import datetime
@@ -26,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AssetScore:
-    """Individual asset score and analysis."""
     symbol: str
     score: float  # 0-100
     reasoning: str
@@ -35,16 +27,17 @@ class AssetScore:
 
 @dataclass
 class PortfolioAllocation:
-    """Portfolio allocation decision."""
-    allocations: Dict[str, float]  # symbol -> weight (0-1)
+    allocations: Dict[str, float]
     reasoning: str
     rebalance_required: bool
 
 
 class GeminiAnalyzer:
-    """Handles all Gemini AI analysis for portfolio decisions."""
-    
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
+    # models/gemini-2.5-flash
+    # models/gemini-2.5-pro
+    # gemini-3-pro-preview
+    # gemini-3-flash-preview
+    def __init__(self, api_key: str, model: str = "gemini-3-flash-preview"):
         self.client = genai.Client(api_key=api_key)
         self.model = model
         logger.info(f"✅ Gemini AI initialized with model: {model}")
