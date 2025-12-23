@@ -9,7 +9,7 @@ import {
 import { useState } from 'react'
 
 export function Sidebar() {
-    const [isExpanded, setIsExpanded] = useState(true)
+    const [isExpanded, setIsExpanded] = useState(false)
     const location = useLocation()
 
     const navItems = [

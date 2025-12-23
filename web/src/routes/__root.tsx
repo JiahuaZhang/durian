@@ -38,10 +38,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body un-flex="~" un-h-screen="~" un-overflow-hidden="~" un-bg-slate="50" un-text-slate="900">
+      <body un-flex="~" un-h="screen" un-overflow="hidden" un-text="slate-900" >
         <Sidebar />
 
-        <main un-flex-1="~" un-overflow-auto="~" un-relative="~">
+        <main un-flex="1" un-overflow="auto" un-position="relative">
           {children}
 
           <TanStackDevtools
