@@ -1,9 +1,12 @@
-import { defineConfig, presetAttributify, presetIcons, presetTypography, presetWind4 } from 'unocss'
+import { defineConfig, presetAttributify, presetIcons, presetTypography, presetWind4, transformerAttributifyJsx, transformerVariantGroup } from 'unocss'
 
 export default defineConfig({
     presets: [
         presetWind4(),
-        presetAttributify(),
+        presetAttributify({
+            prefix: 'un-',
+            prefixedOnly: true,
+        }),
         presetIcons({
             extraProperties: {
                 'display': 'inline-block',
@@ -12,4 +15,8 @@ export default defineConfig({
         }),
         presetTypography(),
     ],
+    transformers: [
+        transformerAttributifyJsx(),
+        transformerVariantGroup(),
+    ]
 })

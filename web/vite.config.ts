@@ -8,13 +8,13 @@ import viteTsConfigPaths from 'vite-tsconfig-paths'
 
 const config = defineConfig({
   plugins: [
+    UnoCSS(),
     devtools(),
     nitro(),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ['./tsconfig.json'],
     }),
-    UnoCSS(),
     tanstackStart(),
     viteReact(),
   ],

@@ -1,11 +1,8 @@
+import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-
-import Header from '../components/Header'
-
 import 'virtual:uno.css'
-import appCss from '../styles.css?url'
+import { Sidebar } from '../components/Sidebar'
 
 export const Route = createRootRoute({
   head: () => ({
@@ -18,18 +15,21 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'TanStack Start Starter',
+        title: 'Durian Invest',
       },
     ],
-    links: [
-      {
-        rel: 'stylesheet',
-        href: appCss,
-      },
-    ],
+    links: [],
   }),
 
   shellComponent: RootDocument,
+  notFoundComponent: () => (
+    <div un-flex="~" un-h-full="~" un-items-center="~" un-justify-center="~" un-p="8" un-text-center="~">
+      <div un-space-y="4">
+        <h1 un-text="4xl" un-font-bold="~" un-text-slate="800">404</h1>
+        <p un-text-slate="500">Page not found</p>
+      </div>
+    </div>
+  ),
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -38,21 +38,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
-        <Header />
-        {children}
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
-        <Scripts />
+      <body un-flex="~" un-h-screen="~" un-overflow-hidden="~" un-bg-slate="50" un-text-slate="900">
+        <Sidebar />
+
+        <main un-flex-1="~" un-overflow-auto="~" un-relative="~">
+          {children}
+
+          <TanStackDevtools
+            config={{ position: 'bottom-right' }}
+            plugins={[
+              {
+                name: 'Tanstack Router',
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          />
+          <Scripts />
+        </main>
       </body>
     </html>
   )
