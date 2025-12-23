@@ -67,6 +67,7 @@ function App() {
                 START
               </span>
             </h1>
+            <div className="text-center font-bold text-xl my-4 text-purple-500 i-lucide-verified" />
           </div>
           <p className="text-2xl md:text-3xl text-gray-300 mb-4 font-light">
             The framework for next generation AI applications
