@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as FuturesRouteImport } from './routes/futures'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FuturesIndexRouteImport } from './routes/futures.index'
+import { Route as FuturesMaRouteImport } from './routes/futures.ma'
 
 const FuturesRoute = FuturesRouteImport.update({
   id: '/futures',
@@ -22,31 +24,46 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FuturesIndexRoute = FuturesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FuturesRoute,
+} as any)
+const FuturesMaRoute = FuturesMaRouteImport.update({
+  id: '/ma',
+  path: '/ma',
+  getParentRoute: () => FuturesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/futures': typeof FuturesRoute
+  '/futures': typeof FuturesRouteWithChildren
+  '/futures/ma': typeof FuturesMaRoute
+  '/futures/': typeof FuturesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/futures': typeof FuturesRoute
+  '/futures/ma': typeof FuturesMaRoute
+  '/futures': typeof FuturesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/futures': typeof FuturesRoute
+  '/futures': typeof FuturesRouteWithChildren
+  '/futures/ma': typeof FuturesMaRoute
+  '/futures/': typeof FuturesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/futures'
+  fullPaths: '/' | '/futures' | '/futures/ma' | '/futures/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/futures'
-  id: '__root__' | '/' | '/futures'
+  to: '/' | '/futures/ma' | '/futures'
+  id: '__root__' | '/' | '/futures' | '/futures/ma' | '/futures/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  FuturesRoute: typeof FuturesRoute
+  FuturesRoute: typeof FuturesRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +82,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/futures/': {
+      id: '/futures/'
+      path: '/'
+      fullPath: '/futures/'
+      preLoaderRoute: typeof FuturesIndexRouteImport
+      parentRoute: typeof FuturesRoute
+    }
+    '/futures/ma': {
+      id: '/futures/ma'
+      path: '/ma'
+      fullPath: '/futures/ma'
+      preLoaderRoute: typeof FuturesMaRouteImport
+      parentRoute: typeof FuturesRoute
+    }
   }
 }
 
+interface FuturesRouteChildren {
+  FuturesMaRoute: typeof FuturesMaRoute
+  FuturesIndexRoute: typeof FuturesIndexRoute
+}
+
+const FuturesRouteChildren: FuturesRouteChildren = {
+  FuturesMaRoute: FuturesMaRoute,
+  FuturesIndexRoute: FuturesIndexRoute,
+}
+
+const FuturesRouteWithChildren =
+  FuturesRoute._addFileChildren(FuturesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  FuturesRoute: FuturesRoute,
+  FuturesRoute: FuturesRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
