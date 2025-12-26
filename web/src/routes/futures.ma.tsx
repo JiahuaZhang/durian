@@ -1,46 +1,44 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { CandleData, MAChart } from '../components/MAChart';
+import { MAChart } from '../components/MAChart';
+import { fromYahooData } from '../data/yahoo';
+
+const searchSchema = {
+    symbol: (val: unknown) => typeof val === 'string' ? val : '^SPX',
+    interval: (val: unknown) => typeof val === 'string' ? val : '1d',
+}
+
+type ParsedSearch = {
+    symbol: string
+    interval: string
+}
 
 export const Route = createFileRoute('/futures/ma')({
     component: RouteComponent,
+    validateSearch: (search: Record<string, unknown>): ParsedSearch => {
+        return {
+            symbol: searchSchema.symbol(search.symbol),
+            interval: searchSchema.interval(search.interval),
+        }
+    },
+    loaderDeps: ({ search: { symbol, interval } }) => ({ symbol, interval }),
+    loader: async ({ deps: { symbol, interval } }) => {
+        const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
+        const range = interval.endsWith('m') || interval.endsWith('h') ? '6mo' : '5y';
+        const response = await fetch(`${baseUrl}/api/yahoo/chart/${symbol}?interval=${interval}&range=${range}`);
+
+        const json = await response.json();
+        const data = fromYahooData(json);
+
+        return { data, symbol };
+    }
 })
 
-function generateData(numberOfCandles = 500): CandleData[] {
-    let date = new Date();
-    date.setDate(date.getDate() - numberOfCandles);
-
-    let value = 4000;
-    const data: CandleData[] = [];
-
-    for (let i = 0; i < numberOfCandles; i++) {
-        date.setDate(date.getDate() + 1);
-        const dayStr = date.toISOString().split('T')[0];
-
-        const change = (Math.random() - 0.5) * 40;
-        const open = value + (Math.random() - 0.5) * 10;
-        const close = open + change;
-        const high = Math.max(open, close) + Math.random() * 10;
-        const low = Math.min(open, close) - Math.random() * 10;
-
-        value = close;
-
-        data.push({
-            time: dayStr,
-            open,
-            high,
-            low,
-            close,
-        });
-    }
-    return data;
-}
-
 function RouteComponent() {
-    const candleData = generateData(800);
+    const { data, symbol } = Route.useLoaderData();
 
     return (
         <div un-h="full" un-w="full" un-p="4">
-            <MAChart data={candleData} title="SPX" />
+            <MAChart data={data} title={symbol} />
         </div>
     )
 }
