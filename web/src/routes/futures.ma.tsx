@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { Time } from 'lightweight-charts';
 import { CandleData, MAChart } from '../components/MAChart';
 
 export const Route = createFileRoute('/futures/ma')({
@@ -26,7 +25,7 @@ function generateData(numberOfCandles = 500): CandleData[] {
         value = close;
 
         data.push({
-            time: dayStr as Time,
+            time: dayStr,
             open,
             high,
             low,

@@ -1,5 +1,5 @@
-import { CandlestickSeries, createChart, IChartApi, LineSeries } from 'lightweight-charts'
-import { useEffect, useRef, useState } from 'react'
+import { CandlestickSeries, createChart, IChartApi, LineSeries, SeriesDataItemTypeMap } from 'lightweight-charts'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { EMA, SMA } from 'technicalindicators'
 
 export type CandleData = {
@@ -32,6 +32,7 @@ export const UnoTrick = <div un-bg='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91
 export function MAChart({ data, title = 'SPX' }: MAChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const chartRef = useRef<IChartApi | null>(null)
+    const indicatorCache = useMemo(() => new Map<string, SeriesDataItemTypeMap['Line'][]>(), [data]);
 
     const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(['sma20', 'sma50', 'ema20']))
 
@@ -58,9 +59,12 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
         const closePrices = data.map(d => d.close)
 
         AVAILABLE_INDICATORS.forEach(ind => {
-            if (activeToggles.has(ind.id)) {
-                let calculatedValues: number[] = []
+            if (!activeToggles.has(ind.id)) return;
 
+            let seriesData = indicatorCache.get(ind.id);
+
+            if (!seriesData) {
+                let calculatedValues: number[] = [];
                 if (ind.type === 'SMA') {
                     calculatedValues = SMA.calculate({ period: ind.period, values: closePrices })
                 } else if (ind.type === 'EMA') {
@@ -68,28 +72,31 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
                 }
 
                 if (calculatedValues.length > 0) {
-                    const series = chart.addSeries(LineSeries, {
-                        color: ind.color,
-                        lineWidth: 2,
-                        lineStyle: ind.type === 'EMA' ? 2 : 0,
-                        lastValueVisible: false,
-                        priceLineVisible: false,
-                    })
-
                     const offset = ind.period - 1
-                    const seriesData = data.slice(offset).map((d, i) => ({
+                    seriesData = data.slice(offset).map((d, i) => ({
                         time: d.time as any,
                         value: calculatedValues[i]
-                    }))
-
-                    series.setData(seriesData)
+                    }));
+                    indicatorCache.set(ind.id, seriesData);
                 }
+            }
+
+            if (seriesData) {
+                const series = chart.addSeries(LineSeries, {
+                    color: ind.color,
+                    lineWidth: 2,
+                    lineStyle: ind.type === 'EMA' ? 2 : 0,
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                })
+
+                series.setData(seriesData)
             }
         })
 
         return chart.remove;
 
-    }, [activeToggles, data, title])
+    }, [activeToggles, data, title, indicatorCache])
 
     return (
         <div un-flex="~ col gap-4">
