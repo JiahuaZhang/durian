@@ -1,5 +1,5 @@
-import { CandlestickSeries, createChart, IChartApi, LineSeries, SeriesDataItemTypeMap } from 'lightweight-charts'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { CandlestickSeries, createChart, ISeriesApi, LineSeries } from 'lightweight-charts'
+import { useEffect, useRef, useState } from 'react'
 import { EMA, SMA } from 'technicalindicators'
 
 export type CandleData = {
@@ -31,8 +31,7 @@ export const UnoTrick = <div un-bg='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91
 
 export function MAChart({ data, title = 'SPX' }: MAChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
-    const chartRef = useRef<IChartApi | null>(null)
-    const indicatorCache = useMemo(() => new Map<string, SeriesDataItemTypeMap['Line'][]>(), [data]);
+    const seriesCache = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
 
     const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(['sma20', 'sma50', 'ema20']))
 
@@ -51,7 +50,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
         if (!chartContainerRef.current) return
 
         const chart = createChart(chartContainerRef.current)
-        chartRef.current = chart
+        seriesCache.current.clear()
 
         const mainSeries = chart.addSeries(CandlestickSeries)
         mainSeries.setData(data as any)
@@ -59,44 +58,59 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
         const closePrices = data.map(d => d.close)
 
         AVAILABLE_INDICATORS.forEach(ind => {
-            if (!activeToggles.has(ind.id)) return;
-
-            let seriesData = indicatorCache.get(ind.id);
-
-            if (!seriesData) {
-                let calculatedValues: number[] = [];
-                if (ind.type === 'SMA') {
-                    calculatedValues = SMA.calculate({ period: ind.period, values: closePrices })
-                } else if (ind.type === 'EMA') {
-                    calculatedValues = EMA.calculate({ period: ind.period, values: closePrices })
-                }
-
-                if (calculatedValues.length > 0) {
-                    const offset = ind.period - 1
-                    seriesData = data.slice(offset).map((d, i) => ({
-                        time: d.time as any,
-                        value: calculatedValues[i]
-                    }));
-                    indicatorCache.set(ind.id, seriesData);
-                }
+            let calculatedValues: number[] = []
+            if (ind.type === 'SMA') {
+                calculatedValues = SMA.calculate({ period: ind.period, values: closePrices })
+            } else if (ind.type === 'EMA') {
+                calculatedValues = EMA.calculate({ period: ind.period, values: closePrices })
             }
 
-            if (seriesData) {
-                const series = chart.addSeries(LineSeries, {
-                    color: ind.color,
-                    lineWidth: 2,
-                    lineStyle: ind.type === 'EMA' ? 2 : 0,
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                })
+            if (!calculatedValues.length) return;
 
-                series.setData(seriesData)
-            }
+            const series = chart.addSeries(LineSeries, {
+                color: ind.color,
+                lineWidth: 2,
+                lineStyle: ind.type === 'EMA' ? 2 : 0,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                visible: activeToggles.has(ind.id)
+            })
+
+            const seriesData = data.slice(ind.period - 1)
+                .map((d, i) => ({
+                    time: d.time as any,
+                    value: calculatedValues[i]
+                }))
+            series.setData(seriesData)
+
+            seriesCache.current.set(ind.id, series)
         })
 
-        return chart.remove;
+        let areLabelsVisible = false;
+        chart.subscribeCrosshairMove((param) => {
+            const isHovering = param.point !== undefined && param.time !== undefined &&
+                param.point.x >= 0 && param.point.x < chartContainerRef.current!.clientWidth &&
+                param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight;
 
-    }, [activeToggles, data, title, indicatorCache])
+            if (isHovering !== areLabelsVisible) {
+                areLabelsVisible = isHovering;
+                seriesCache.current.forEach(s => s.applyOptions({
+                    lastValueVisible: isHovering,
+                    priceLineVisible: isHovering
+                }));
+            }
+        });
+
+        return () => chart.remove()
+    }, [data, title])
+
+    useEffect(() => {
+        seriesCache.current.forEach((series, id) => {
+            series.applyOptions({
+                visible: activeToggles.has(id)
+            })
+        })
+    }, [activeToggles])
 
     return (
         <div un-flex="~ col gap-4">
