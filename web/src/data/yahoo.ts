@@ -66,6 +66,7 @@ export function fromYahooData(json: YahooResponse): CandleData[] {
         const high = quote.high[index];
         const low = quote.low[index];
         const close = quote.close[index];
+        const volume = quote.volume[index];
         const adjustClose = adjustCloses[index];
 
         return {
@@ -74,6 +75,7 @@ export function fromYahooData(json: YahooResponse): CandleData[] {
             high,
             low,
             close,
+            volume,
             adjustClose,
         }
     }).filter(c => c.open != null && c.high != null && c.low != null && c.close != null)

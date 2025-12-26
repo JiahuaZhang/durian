@@ -1,4 +1,4 @@
-import { CandlestickSeries, createChart, ISeriesApi, LineSeries } from 'lightweight-charts'
+import { CandlestickSeries, createChart, HistogramSeries, ISeriesApi, LineSeries } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 import { EMA, SMA } from 'technicalindicators'
 
@@ -8,6 +8,8 @@ export type CandleData = {
     high: number
     low: number
     close: number
+    volume: number
+    adjustClose: number
 }
 
 type MAChartProps = {
@@ -54,6 +56,27 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
 
         const mainSeries = chart.addSeries(CandlestickSeries)
         mainSeries.setData(data as any)
+
+        const volumeSeries = chart.addSeries(HistogramSeries, {
+            priceFormat: {
+                type: 'volume',
+            },
+            priceScaleId: '',
+            lastValueVisible: false,
+        });
+
+        volumeSeries.priceScale().applyOptions({
+            scaleMargins: {
+                top: 0.8,
+                bottom: 0,
+            },
+        });
+
+        volumeSeries.setData(data.map(d => ({
+            time: d.time,
+            value: d.volume,
+            color: d.close >= d.open ? '#26a69a' : '#ef5350'
+        })) as any);
 
         const closePrices = data.map(d => d.close)
 
