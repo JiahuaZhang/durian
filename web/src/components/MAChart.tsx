@@ -17,6 +17,17 @@ type MAChartProps = {
     title?: string
 }
 
+type Legend = (CandleData & {
+    'sma5': number
+    'sma10': number
+    'sma20': number
+    'sma50': number
+    'sma200': number
+    'ema9': number
+    'ema20': number
+    'ema50': number
+}) | null;
+
 const AVAILABLE_INDICATORS = [
     { id: 'sma5', type: 'SMA', period: 5, color: '#2962FF', label: '5 SMA' },
     { id: 'sma10', type: 'SMA', period: 10, color: '#00BCD4', label: '10 SMA' },
@@ -31,10 +42,19 @@ const AVAILABLE_INDICATORS = [
 export const UnoTrick = <div un-bg='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91E63 #3F51B5 #9C27B0'
     un-text='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91E63 #3F51B5 #9C27B0' />
 
+const formatPrice = (val: number) => val.toFixed(2)
+const formatVol = (val: number) => {
+    if (val >= 1e9) return (val / 1e9).toFixed(2) + 'B'
+    if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M'
+    if (val >= 1e3) return (val / 1e3).toFixed(2) + 'K'
+    return val.toString()
+}
+const getColor = (d: CandleData) => d.close >= d.open ? '#26a69a' : '#ef5350'
+
 export function MAChart({ data, title = 'SPX' }: MAChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const seriesCache = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
-
+    const [legend, setLegend] = useState<Legend>(null)
     const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(['sma20', 'sma50', 'ema20']))
 
     const toggleIndicator = (id: string) => {
@@ -56,6 +76,8 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
 
         const mainSeries = chart.addSeries(CandlestickSeries)
         mainSeries.setData(data as any)
+        const seriesIdMap = new Map()
+        seriesIdMap.set(mainSeries, 'candle')
 
         const volumeSeries = chart.addSeries(HistogramSeries, {
             priceFormat: {
@@ -64,6 +86,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
             priceScaleId: '',
             lastValueVisible: false,
         });
+        seriesIdMap.set(volumeSeries, 'volume')
 
         volumeSeries.priceScale().applyOptions({
             scaleMargins: {
@@ -96,7 +119,8 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
                 lineStyle: ind.type === 'EMA' ? 2 : 0,
                 lastValueVisible: false,
                 priceLineVisible: false,
-                visible: activeToggles.has(ind.id)
+                visible: activeToggles.has(ind.id),
+                crosshairMarkerVisible: true
             })
 
             const seriesData = data.slice(ind.period - 1)
@@ -107,20 +131,32 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
             series.setData(seriesData)
 
             seriesCache.current.set(ind.id, series)
+            seriesIdMap.set(series, ind.id)
         })
 
-        let areLabelsVisible = false;
         chart.subscribeCrosshairMove((param) => {
+            let nextLegend = {} as Legend;
+
+            if (param.time) {
+                param.seriesData.forEach((value, series) => {
+                    const id = seriesIdMap.get(series)
+                    if (id === 'candle') {
+                        nextLegend = { ...nextLegend, ...value } as Legend
+                    } else {
+                        nextLegend = { ...nextLegend, [id]: (value as any).value } as Legend
+                    }
+                })
+                setLegend(nextLegend)
+            } else {
+                setLegend(null)
+            }
+
             const isHovering = param.point !== undefined && param.time !== undefined &&
                 param.point.x >= 0 && param.point.x < chartContainerRef.current!.clientWidth &&
                 param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight;
 
-            if (isHovering !== areLabelsVisible) {
-                areLabelsVisible = isHovering;
-                seriesCache.current.forEach(s => s.applyOptions({
-                    lastValueVisible: isHovering,
-                    priceLineVisible: isHovering
-                }));
+            if (!isHovering) {
+                setLegend(null)
             }
         });
 
@@ -161,6 +197,47 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
                 un-shadow="sm"
                 un-position='relative'
             >
+                {legend && (
+                    <div un-position="absolute top-2 left-2" un-z="10" un-flex="~ wrap gap-2" un-text="xs" un-font="mono" un-max-w='md'>
+                        <div un-flex="~ gap-1">
+                            <span un-text="slate-500">O</span>
+                            <span un-text={getColor(legend)}>{formatPrice(legend.open)}</span>
+                        </div>
+                        <div un-flex="~ gap-1">
+                            <span un-text="slate-500">H</span>
+                            <span un-text={getColor(legend)}>{formatPrice(legend.high)}</span>
+                        </div>
+                        <div un-flex="~ gap-1">
+                            <span un-text="slate-500">L</span>
+                            <span un-text={getColor(legend)}>{formatPrice(legend.low)}</span>
+                        </div>
+                        <div un-flex="~ gap-1">
+                            <span un-text="slate-500">C</span>
+                            <span un-text={getColor(legend)}>{formatPrice(legend.close)}</span>
+                        </div>
+                        <div un-flex="~ gap-1">
+                            <span un-text="slate-500">V</span>
+                            <span un-text={getColor(legend)}>{formatVol(legend.volume)}</span>
+                        </div>
+                        <div un-flex="~ gap-1">
+                            <span un-text={legend.close >= legend.open ? 'green-500' : 'red-500'}>
+                                {(legend.close - legend.open).toFixed(2)} ({((legend.close - legend.open) / legend.open * 100).toFixed(2)}%)
+                            </span>
+                        </div>
+                        {AVAILABLE_INDICATORS.map((ind) => {
+                            if (!activeToggles.has(ind.id)) return null;
+
+                            const val = (legend as any)[ind.id] as number | undefined
+                            if (val === undefined) return null
+                            return (
+                                <div key={ind.id} un-flex="~ gap-1">
+                                    <span un-text={ind.color}>{ind.label}</span>
+                                    <span un-text={ind.color}>{val.toFixed(2)}</span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
                 <div
                     ref={chartContainerRef}
                     un-w="full"
