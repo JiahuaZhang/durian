@@ -5,7 +5,8 @@ import {
     LayoutGrid,
     Menu,
     PiggyBank,
-    TrendingUp
+    TrendingUp,
+    CalendarDays
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -16,6 +17,7 @@ export function Sidebar() {
     const navItems = [
         { icon: Home, label: 'Home', to: '/' },
         { icon: LayoutGrid, label: 'Overview', to: '/overview' },
+        { icon: CalendarDays, label: 'Calendar', to: '/economic-calendar' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
     ]
 
