@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as FuturesRouteImport } from './routes/futures'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as FuturesMaRouteImport } from './routes/futures.ma'
 
+const OverviewRoute = OverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FuturesRoute = FuturesRouteImport.update({
   id: '/futures',
   path: '/futures',
@@ -38,11 +44,13 @@ const FuturesMaRoute = FuturesMaRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/futures': typeof FuturesRouteWithChildren
+  '/overview': typeof OverviewRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/overview': typeof OverviewRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures': typeof FuturesIndexRoute
 }
@@ -50,24 +58,33 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/futures': typeof FuturesRouteWithChildren
+  '/overview': typeof OverviewRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/futures' | '/futures/ma' | '/futures/'
+  fullPaths: '/' | '/futures' | '/overview' | '/futures/ma' | '/futures/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/futures/ma' | '/futures'
-  id: '__root__' | '/' | '/futures' | '/futures/ma' | '/futures/'
+  to: '/' | '/overview' | '/futures/ma' | '/futures'
+  id: '__root__' | '/' | '/futures' | '/overview' | '/futures/ma' | '/futures/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FuturesRoute: typeof FuturesRouteWithChildren
+  OverviewRoute: typeof OverviewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/overview': {
+      id: '/overview'
+      path: '/overview'
+      fullPath: '/overview'
+      preLoaderRoute: typeof OverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/futures': {
       id: '/futures'
       path: '/futures'
@@ -115,6 +132,7 @@ const FuturesRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FuturesRoute: FuturesRouteWithChildren,
+  OverviewRoute: OverviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

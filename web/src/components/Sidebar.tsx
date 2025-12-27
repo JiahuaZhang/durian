@@ -2,6 +2,7 @@ import { Link, useLocation } from '@tanstack/react-router'
 import {
     ChevronLeft,
     Home,
+    LayoutGrid,
     Menu,
     PiggyBank,
     TrendingUp
@@ -14,6 +15,7 @@ export function Sidebar() {
 
     const navItems = [
         { icon: Home, label: 'Home', to: '/' },
+        { icon: LayoutGrid, label: 'Overview', to: '/overview' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
     ]
 

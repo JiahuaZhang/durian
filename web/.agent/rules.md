@@ -17,3 +17,8 @@
 -   **Grouping**: Group related utilities in a single attribute value.
     -   *Good*: `un-position="absolute top-2 left-2"`
     -   *Bad*: `un-position="absolute" un-top="2" un-left="2"`
+-   **Avoid Tilda**: Prefer explicit values over boolean tildes.
+    -   *Good*: `un-font="bold"`
+    -   *Bad*: `un-font-bold="~"`
+    -   *Good*: `un-font="semibold"`
+    -   *Bad*: `un-font-semibold="~"`
