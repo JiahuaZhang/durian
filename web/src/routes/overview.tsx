@@ -86,7 +86,7 @@ function Overview() {
       <div un-flex="~ col" un-gap="4">
         <h2 un-text="2xl slate-800" un-font="semibold">Stock Heatmap</h2>
         <div un-h="150" un-rounded="xl" un-overflow="hidden" un-border="~ slate-200" un-shadow="sm" un-bg="white">
-          <StockHeatmap {...commonProps} />
+          <StockHeatmap {...commonProps} exchanges={["NYSE", "NASDAQ"]} />
         </div>
       </div>
     </div>

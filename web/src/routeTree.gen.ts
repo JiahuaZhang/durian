@@ -15,6 +15,7 @@ import { Route as EconomicCalendarRouteImport } from './routes/economic-calendar
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as FuturesMaRouteImport } from './routes/futures.ma'
+import { Route as FuturesDomRouteImport } from './routes/futures.dom'
 
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
@@ -46,12 +47,18 @@ const FuturesMaRoute = FuturesMaRouteImport.update({
   path: '/ma',
   getParentRoute: () => FuturesRoute,
 } as any)
+const FuturesDomRoute = FuturesDomRouteImport.update({
+  id: '/dom',
+  path: '/dom',
+  getParentRoute: () => FuturesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/futures/dom': typeof FuturesDomRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/economic-calendar': typeof EconomicCalendarRoute
   '/overview': typeof OverviewRoute
+  '/futures/dom': typeof FuturesDomRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures': typeof FuturesIndexRoute
 }
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/futures/dom': typeof FuturesDomRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
@@ -78,16 +87,24 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/futures/dom'
     | '/futures/ma'
     | '/futures/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/economic-calendar' | '/overview' | '/futures/ma' | '/futures'
+  to:
+    | '/'
+    | '/economic-calendar'
+    | '/overview'
+    | '/futures/dom'
+    | '/futures/ma'
+    | '/futures'
   id:
     | '__root__'
     | '/'
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/futures/dom'
     | '/futures/ma'
     | '/futures/'
   fileRoutesById: FileRoutesById
@@ -143,15 +160,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuturesMaRouteImport
       parentRoute: typeof FuturesRoute
     }
+    '/futures/dom': {
+      id: '/futures/dom'
+      path: '/dom'
+      fullPath: '/futures/dom'
+      preLoaderRoute: typeof FuturesDomRouteImport
+      parentRoute: typeof FuturesRoute
+    }
   }
 }
 
 interface FuturesRouteChildren {
+  FuturesDomRoute: typeof FuturesDomRoute
   FuturesMaRoute: typeof FuturesMaRoute
   FuturesIndexRoute: typeof FuturesIndexRoute
 }
 
 const FuturesRouteChildren: FuturesRouteChildren = {
+  FuturesDomRoute: FuturesDomRoute,
   FuturesMaRoute: FuturesMaRoute,
   FuturesIndexRoute: FuturesIndexRoute,
 }
