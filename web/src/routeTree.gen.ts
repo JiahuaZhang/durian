@@ -15,7 +15,7 @@ import { Route as EconomicCalendarRouteImport } from './routes/economic-calendar
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as FuturesMaRouteImport } from './routes/futures.ma'
-import { Route as FuturesDomRouteImport } from './routes/futures.dom'
+import { Route as DomBtcRouteImport } from './routes/dom.btc'
 
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
@@ -47,10 +47,10 @@ const FuturesMaRoute = FuturesMaRouteImport.update({
   path: '/ma',
   getParentRoute: () => FuturesRoute,
 } as any)
-const FuturesDomRoute = FuturesDomRouteImport.update({
-  id: '/dom',
-  path: '/dom',
-  getParentRoute: () => FuturesRoute,
+const DomBtcRoute = DomBtcRouteImport.update({
+  id: '/dom/btc',
+  path: '/dom/btc',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -58,7 +58,7 @@ export interface FileRoutesByFullPath {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
-  '/futures/dom': typeof FuturesDomRoute
+  '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
@@ -66,7 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/economic-calendar': typeof EconomicCalendarRoute
   '/overview': typeof OverviewRoute
-  '/futures/dom': typeof FuturesDomRoute
+  '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures': typeof FuturesIndexRoute
 }
@@ -76,7 +76,7 @@ export interface FileRoutesById {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
-  '/futures/dom': typeof FuturesDomRoute
+  '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
@@ -87,7 +87,7 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/overview'
-    | '/futures/dom'
+    | '/dom/btc'
     | '/futures/ma'
     | '/futures/'
   fileRoutesByTo: FileRoutesByTo
@@ -95,7 +95,7 @@ export interface FileRouteTypes {
     | '/'
     | '/economic-calendar'
     | '/overview'
-    | '/futures/dom'
+    | '/dom/btc'
     | '/futures/ma'
     | '/futures'
   id:
@@ -104,7 +104,7 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/overview'
-    | '/futures/dom'
+    | '/dom/btc'
     | '/futures/ma'
     | '/futures/'
   fileRoutesById: FileRoutesById
@@ -114,6 +114,7 @@ export interface RootRouteChildren {
   EconomicCalendarRoute: typeof EconomicCalendarRoute
   FuturesRoute: typeof FuturesRouteWithChildren
   OverviewRoute: typeof OverviewRoute
+  DomBtcRoute: typeof DomBtcRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -160,24 +161,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuturesMaRouteImport
       parentRoute: typeof FuturesRoute
     }
-    '/futures/dom': {
-      id: '/futures/dom'
-      path: '/dom'
-      fullPath: '/futures/dom'
-      preLoaderRoute: typeof FuturesDomRouteImport
-      parentRoute: typeof FuturesRoute
+    '/dom/btc': {
+      id: '/dom/btc'
+      path: '/dom/btc'
+      fullPath: '/dom/btc'
+      preLoaderRoute: typeof DomBtcRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
 interface FuturesRouteChildren {
-  FuturesDomRoute: typeof FuturesDomRoute
   FuturesMaRoute: typeof FuturesMaRoute
   FuturesIndexRoute: typeof FuturesIndexRoute
 }
 
 const FuturesRouteChildren: FuturesRouteChildren = {
-  FuturesDomRoute: FuturesDomRoute,
   FuturesMaRoute: FuturesMaRoute,
   FuturesIndexRoute: FuturesIndexRoute,
 }
@@ -190,6 +189,7 @@ const rootRouteChildren: RootRouteChildren = {
   EconomicCalendarRoute: EconomicCalendarRoute,
   FuturesRoute: FuturesRouteWithChildren,
   OverviewRoute: OverviewRoute,
+  DomBtcRoute: DomBtcRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

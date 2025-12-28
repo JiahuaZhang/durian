@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
-export const Route = createFileRoute('/futures/dom')({
+export const Route = createFileRoute('/dom/btc')({
     component: FuturesDOMPage
 })
 
@@ -10,6 +10,9 @@ type OrderBookLevel = {
     p: string // Price
     q: string // Quantity
 }
+
+const formatPrice = (p: string) => parseFloat(p).toFixed(1)
+const formatQty = (q: string) => parseFloat(q).toFixed(3)
 
 function FuturesDOMPage() {
     const [bids, setBids] = useState<OrderBookLevel[]>([])
@@ -34,35 +37,16 @@ function FuturesDOMPage() {
 
             if (data.b && data.a) {
                 const newBids = data.b.map((item: string[]) => ({ p: item[0], q: item[1] }))
-                const newAsks = data.a.map((item: string[]) => ({ p: item[0], q: item[1] })).reverse() // Asks Low->High, reverse for visual High->Low if needed, but actually usually Ask Low is best price (center).
-                // Standard Ladder:
-                // High Price (Ask)
-                // ...
-                // Low Price (Ask)
-                // --- Center ---
-                // High Price (Bid)
-                // ...
-                // Low Price (Bid)
-
-                // If 'asks' is sorted Low->High (100, 101, 102), and we map them:
-                // Div 1: 100
-                // Div 2: 101
-                // This puts Lowest Ask at Top.
-                // Ladder usually puts Highest Price at Top.
-                // So we WANT High->Low.
-                // So yes, reverse (102, 101, 100).
-
+                const newAsks = data.a.map((item: string[]) => ({ p: item[0], q: item[1] })).reverse()
                 setBids(newBids)
                 setAsks(newAsks)
             }
         }
 
-        // Also connect to a ticker stream for last price to show "center" focus roughly
         const tickerWs = new WebSocket('wss://fstream.binance.com/ws/btcusdt@aggTrade')
 
         tickerWs.onmessage = (event) => {
             const data = JSON.parse(event.data)
-            // data.p is price
             if (data.p) {
                 setLastPrice(prev => {
                     if (parseFloat(data.p) > parseFloat(prev)) setPriceDirection("up")
@@ -72,20 +56,15 @@ function FuturesDOMPage() {
             }
         }
 
-
         return () => {
             ws.close()
             tickerWs.close()
         }
     }, [])
 
-    // Calculate max volume for bar visualization
     const maxBidVol = Math.max(...bids.map(b => parseFloat(b.q)), 1)
     const maxAskVol = Math.max(...asks.map(a => parseFloat(a.q)), 1)
     const maxVol = Math.max(maxBidVol, maxAskVol)
-
-    const formatPrice = (p: string) => parseFloat(p).toFixed(1)
-    const formatQty = (q: string) => parseFloat(q).toFixed(3)
 
     return (
         <div un-p="2" un-flex="~ col" un-gap="2">
@@ -104,8 +83,7 @@ function FuturesDOMPage() {
             </div>
 
             <div un-flex="1" un-bg="white" un-rounded="xl" un-border="~ slate-200" un-shadow="sm" un-overflow="hidden" un-position="">
-
-                <div un-grid="~ cols-3" un-bg="slate-50" un-border-b="~ slate-200" un-p="y-2" un-text="xs slate-500 font-semibold uppercase center">
+                <div un-grid="~ cols-3" un-bg="slate-50" un-border-b="~ slate-200" un-p="y-2" un-text="xs slate-500 center">
                     <div>Bid Vol</div>
                     <div>Price</div>
                     <div>Ask Vol</div>
@@ -116,12 +94,12 @@ function FuturesDOMPage() {
                         const vol = parseFloat(ask.q)
                         const widthPct = (vol / maxVol) * 100
                         return (
-                            <div key={`ask-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50" un-relative="~">
-                                <div un-p="2" un-text="right slate-400"></div>
-                                <div un-p="2" un-text="center red-600 font-medium" un-bg="red-50">{formatPrice(ask.p)}</div>
-                                <div un-p="2" un-text="left slate-700" un-relative="~">
-                                    <span un-relative="~ z-10">{formatQty(ask.q)}</span>
-                                    <div un-absolute="~ top-0 bottom-0 left-0" un-bg="red-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
+                            <div key={`ask-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50">
+                                <div />
+                                <div un-p="2" un-text="center red-600" un-bg="red-50">{formatPrice(ask.p)}</div>
+                                <div un-p="2" un-text="left slate-700" un-position="relative" >
+                                    <span>{formatQty(ask.q)}</span>
+                                    <div un-position="absolute" un-top="0" un-bottom="0" un-left="0" un-bg="red-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
                                 </div>
                             </div>
                         )
@@ -139,13 +117,13 @@ function FuturesDOMPage() {
                         const vol = parseFloat(bid.q)
                         const widthPct = (vol / maxVol) * 100
                         return (
-                            <div key={`bid-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50" un-relative="~">
-                                <div un-p="2" un-text="right slate-700" un-relative="~">
-                                    <span un-relative="~ z-10">{formatQty(bid.q)}</span>
-                                    <div un-absolute="~ top-0 bottom-0 right-0" un-bg="green-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
+                            <div key={`bid-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50" >
+                                <div un-p="2" un-text="right slate-700" un-position="relative">
+                                    <span>{formatQty(bid.q)}</span>
+                                    <div un-position="absolute" un-top="0" un-bottom="0" un-right="0" un-bg="green-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
                                 </div>
-                                <div un-p="2" un-text="center green-600 font-medium" un-bg="green-50">{formatPrice(bid.p)}</div>
-                                <div un-p="2" un-text="left slate-400"></div>
+                                <div un-p="2" un-text="center green-600" un-bg="green-50">{formatPrice(bid.p)}</div>
+                                <div />
                             </div>
                         )
                     })}

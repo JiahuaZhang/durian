@@ -20,7 +20,7 @@ export function Sidebar() {
         { icon: LayoutGrid, label: 'Overview', to: '/overview' },
         { icon: CalendarDays, label: 'Calendar', to: '/economic-calendar' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
-        { icon: BarChart3, label: 'Depth (DOM)', to: '/futures/dom' },
+        { icon: BarChart3, label: 'Depth (DOM)', to: '/dom/btc' },
     ]
 
     return (
