@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as FuturesRouteImport } from './routes/futures'
 import { Route as EconomicCalendarRouteImport } from './routes/economic-calendar'
+import { Route as CotRouteImport } from './routes/cot'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as FuturesMaRouteImport } from './routes/futures.ma'
 import { Route as DomBtcRouteImport } from './routes/dom.btc'
+import { Route as CotSpxRouteImport } from './routes/cot.spx'
 
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
@@ -30,6 +32,11 @@ const FuturesRoute = FuturesRouteImport.update({
 const EconomicCalendarRoute = EconomicCalendarRouteImport.update({
   id: '/economic-calendar',
   path: '/economic-calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CotRoute = CotRouteImport.update({
+  id: '/cot',
+  path: '/cot',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -52,20 +59,29 @@ const DomBtcRoute = DomBtcRouteImport.update({
   path: '/dom/btc',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CotSpxRoute = CotSpxRouteImport.update({
+  id: '/spx',
+  path: '/spx',
+  getParentRoute: () => CotRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/overview': typeof OverviewRoute
+  '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures': typeof FuturesIndexRoute
@@ -73,9 +89,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
   '/futures/': typeof FuturesIndexRoute
@@ -84,26 +102,32 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/cot'
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
     | '/futures/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/cot'
     | '/economic-calendar'
     | '/overview'
+    | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
     | '/futures'
   id:
     | '__root__'
     | '/'
+    | '/cot'
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
     | '/futures/'
@@ -111,6 +135,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CotRoute: typeof CotRouteWithChildren
   EconomicCalendarRoute: typeof EconomicCalendarRoute
   FuturesRoute: typeof FuturesRouteWithChildren
   OverviewRoute: typeof OverviewRoute
@@ -138,6 +163,13 @@ declare module '@tanstack/react-router' {
       path: '/economic-calendar'
       fullPath: '/economic-calendar'
       preLoaderRoute: typeof EconomicCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cot': {
+      id: '/cot'
+      path: '/cot'
+      fullPath: '/cot'
+      preLoaderRoute: typeof CotRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -168,8 +200,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DomBtcRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cot/spx': {
+      id: '/cot/spx'
+      path: '/spx'
+      fullPath: '/cot/spx'
+      preLoaderRoute: typeof CotSpxRouteImport
+      parentRoute: typeof CotRoute
+    }
   }
 }
+
+interface CotRouteChildren {
+  CotSpxRoute: typeof CotSpxRoute
+}
+
+const CotRouteChildren: CotRouteChildren = {
+  CotSpxRoute: CotSpxRoute,
+}
+
+const CotRouteWithChildren = CotRoute._addFileChildren(CotRouteChildren)
 
 interface FuturesRouteChildren {
   FuturesMaRoute: typeof FuturesMaRoute
@@ -186,6 +235,7 @@ const FuturesRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CotRoute: CotRouteWithChildren,
   EconomicCalendarRoute: EconomicCalendarRoute,
   FuturesRoute: FuturesRouteWithChildren,
   OverviewRoute: OverviewRoute,

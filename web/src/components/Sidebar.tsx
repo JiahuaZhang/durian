@@ -1,13 +1,14 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import {
+    BarChart3,
+    CalendarDays,
     ChevronLeft,
     Home,
     LayoutGrid,
     Menu,
+    PieChart,
     PiggyBank,
-    TrendingUp,
-    CalendarDays,
-    BarChart3
+    TrendingUp
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -21,6 +22,7 @@ export function Sidebar() {
         { icon: CalendarDays, label: 'Calendar', to: '/economic-calendar' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
         { icon: BarChart3, label: 'Depth (DOM)', to: '/dom/btc' },
+        { icon: PieChart, label: 'COT Report', to: '/cot' },
     ]
 
     return (
@@ -44,7 +46,7 @@ export function Sidebar() {
 
             <nav un-p="x-3 y-2" un-flex="~ col 1 gap-2">
                 {navItems.map((item) => {
-                    const isActive = location.pathname === item.to
+                    const isActive = location.pathname.startsWith(item.to)
                     return (
                         <Link className='group'
                             key={item.label}
