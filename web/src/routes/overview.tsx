@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { MarketOverview, StockHeatmap, StockMarket } from 'react-ts-tradingview-widgets';
+import { MarketOverview, MiniChart, StockHeatmap, StockMarket } from 'react-ts-tradingview-widgets';
 
 export const Route = createFileRoute('/overview')({
   component: Overview
@@ -83,9 +83,11 @@ function Overview() {
         </div>
       </div>
 
-      <div un-flex="~ col" un-gap="4">
-        <h2 un-text="2xl slate-800" un-font="semibold">Stock Heatmap</h2>
+      <div un-flex="~" un-gap="4">
         <div un-h="150" un-rounded="xl" un-overflow="hidden" un-border="~ slate-200" un-shadow="sm" un-bg="white">
+          <MiniChart {...commonProps} symbol="TVC:VIX" dateRange="12M" />
+        </div>
+        <div un-h="150" un-rounded="xl" un-overflow="hidden" un-border="~ slate-200" un-shadow="sm" un-bg="white" un-flex="1" >
           <StockHeatmap {...commonProps} exchanges={["NYSE", "NASDAQ"]} />
         </div>
       </div>
