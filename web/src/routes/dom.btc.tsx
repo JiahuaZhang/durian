@@ -1,6 +1,8 @@
+
 import { createFileRoute } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { FootprintChart, Trade } from '../components/FootprintChart'
 
 export const Route = createFileRoute('/dom/btc')({
     component: FuturesDOMPage
@@ -19,6 +21,7 @@ function FuturesDOMPage() {
     const [asks, setAsks] = useState<OrderBookLevel[]>([])
     const [lastPrice, setLastPrice] = useState<string>("")
     const [priceDirection, setPriceDirection] = useState<"up" | "down" | null>(null)
+    const [latestTrade, setLatestTrade] = useState<Trade | null>(null)
 
     const wsRef = useRef<WebSocket | null>(null)
 
@@ -53,6 +56,12 @@ function FuturesDOMPage() {
                     else if (parseFloat(data.p) < parseFloat(prev)) setPriceDirection("down")
                     return data.p
                 })
+                setLatestTrade({
+                    p: data.p,
+                    q: data.q,
+                    T: data.T,
+                    m: data.m
+                })
             }
         }
 
@@ -61,6 +70,7 @@ function FuturesDOMPage() {
             tickerWs.close()
         }
     }, [])
+
 
     const maxBidVol = Math.max(...bids.map(b => parseFloat(b.q)), 1)
     const maxAskVol = Math.max(...asks.map(a => parseFloat(a.q)), 1)
@@ -82,52 +92,56 @@ function FuturesDOMPage() {
                 </div>
             </div>
 
-            <div un-flex="1" un-bg="white" un-rounded="xl" un-border="~ slate-200" un-shadow="sm" un-overflow="hidden" un-position="">
-                <div un-grid="~ cols-3" un-bg="slate-50" un-border-b="~ slate-200" un-p="y-2" un-text="xs slate-500 center">
-                    <div>Bid Vol</div>
-                    <div>Price</div>
-                    <div>Ask Vol</div>
-                </div>
-
-                <div un-h="full" un-overflow-y="auto" un-font="mono">
-                    {[...asks].reverse().map((ask, i) => {
-                        const vol = parseFloat(ask.q)
-                        const widthPct = (vol / maxVol) * 100
-                        return (
-                            <div key={`ask-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50">
-                                <div />
-                                <div un-p="2" un-text="center red-600" un-bg="red-50">{formatPrice(ask.p)}</div>
-                                <div un-p="2" un-text="left slate-700" un-position="relative" >
-                                    <span>{formatQty(ask.q)}</span>
-                                    <div un-position="absolute" un-top="0" un-bottom="0" un-left="0" un-bg="red-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
-                                </div>
-                            </div>
-                        )
-                    })}
-
-                    <div un-bg="slate-100" un-p="1" un-text="center xs slate-500" un-flex="~ items-center justify-center gap-2">
-                        <span un-font="mono bold" un-text={`lg ${priceDirection === "up" ? "green-600" : priceDirection === "down" ? "red-600" : "slate-800"}`}>
-                            {lastPrice ? parseFloat(lastPrice).toFixed(1) : "---"}
-                        </span>
-                        {priceDirection === "up" && <ArrowUp size={20} className="text-green-600" />}
-                        {priceDirection === "down" && <ArrowDown size={20} className="text-red-600" />}
+            <div un-grid="~ gap-4">
+                <div un-border="~ slate-200 rounded" un-shadow="sm">
+                    <div un-grid="~ cols-3" un-bg="slate-50" un-border-b="~ slate-200" un-p="y-2" un-text="xs slate-500 center">
+                        <div>Bid Vol</div>
+                        <div>Price</div>
+                        <div>Ask Vol</div>
                     </div>
 
-                    {bids.map((bid, i) => {
-                        const vol = parseFloat(bid.q)
-                        const widthPct = (vol / maxVol) * 100
-                        return (
-                            <div key={`bid-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50" >
-                                <div un-p="2" un-text="right slate-700" un-position="relative">
-                                    <span>{formatQty(bid.q)}</span>
-                                    <div un-position="absolute" un-top="0" un-bottom="0" un-right="0" un-bg="green-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
+                    <div un-flex="1" un-overflow-y="auto" un-font="mono">
+                        {[...asks].reverse().map((ask, i) => {
+                            const vol = parseFloat(ask.q)
+                            const widthPct = (vol / maxVol) * 100
+                            return (
+                                <div key={`ask-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50">
+                                    <div />
+                                    <div un-p="1" un-text="center red-600" un-bg="red-50">{formatPrice(ask.p)}</div>
+                                    <div un-p="1" un-text="left slate-700" un-position="relative" >
+                                        <span un-relative="z-10" un-pl="1">{formatQty(ask.q)}</span>
+                                        <div un-position="absolute" un-top="0" un-bottom="0" un-left="0" un-bg="red-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
+                                    </div>
                                 </div>
-                                <div un-p="2" un-text="center green-600" un-bg="green-50">{formatPrice(bid.p)}</div>
-                                <div />
-                            </div>
-                        )
-                    })}
+                            )
+                        })}
+
+                        <div un-bg="slate-100" un-p="1" un-text="center xs slate-500" un-flex="~ items-center justify-center gap-2" id="spread-indicator">
+                            <span un-font="mono bold" un-text={`lg ${priceDirection === "up" ? "green-600" : priceDirection === "down" ? "red-600" : "slate-800"}`}>
+                                {lastPrice ? parseFloat(lastPrice).toFixed(1) : "---"}
+                            </span>
+                            {priceDirection === "up" && <ArrowUp size={20} className="text-green-600" />}
+                            {priceDirection === "down" && <ArrowDown size={20} className="text-red-600" />}
+                        </div>
+
+                        {bids.map((bid, i) => {
+                            const vol = parseFloat(bid.q)
+                            const widthPct = (vol / maxVol) * 100
+                            return (
+                                <div key={`bid-${i}`} un-grid="~ cols-3" un-text="sm" un-hover="bg-slate-50" >
+                                    <div un-p="1" un-text="right slate-700" un-position="relative">
+                                        <span un-relative="z-10" un-pr="1">{formatQty(bid.q)}</span>
+                                        <div un-position="absolute" un-top="0" un-bottom="0" un-right="0" un-bg="green-100/50" un-transition="all duration-100" style={{ width: `${widthPct}%` }} />
+                                    </div>
+                                    <div un-p="1" un-text="center green-600" un-bg="green-50">{formatPrice(bid.p)}</div>
+                                    <div />
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
+
+                <FootprintChart latestTrade={latestTrade} />
             </div>
         </div>
     )
