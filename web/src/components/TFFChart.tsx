@@ -1,5 +1,5 @@
-import { ColorType, createChart, LineSeries, LineStyle } from 'lightweight-charts'
-import { useEffect, useRef } from 'react'
+import { createChart, LineSeries, LineStyle } from 'lightweight-charts'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Stochastic } from 'technicalindicators'
 
 export type RawTFFData = {
@@ -168,23 +168,22 @@ export function processTFFData(data: RawTFFData[]): ProcessedPoint[] {
 
 export function TFFChart({ data }: { data: RawTFFData[] }) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
-    const processedData = processTFFData(data)
+    const processedData = useMemo(() => processTFFData(data), [data])
+    const [legend, setLegend] = useState<any>(null)
 
     useEffect(() => {
         if (!chartContainerRef.current) return
 
-        const chart = createChart(chartContainerRef.current, {
-            rightPriceScale: {
-                scaleMargins: { top: 0, bottom: 0.3 },
-                borderColor: '#e2e8f0'
-            }
-        })
+        const chart = createChart(chartContainerRef.current, { rightPriceScale: { scaleMargins: { top: 0.05, bottom: 0.45 } } })
+
+        const seriesMap = new Map<any, string>()
 
         seriesConfig.forEach(conf => {
             const series = chart.addSeries(LineSeries, {
                 color: conf.color, lineWidth: 2, title: conf.label, priceScaleId: 'right',
             })
             series.setData(processedData.map(d => ({ time: d.time, value: Number((d as any)[conf.key] ?? 0) })))
+            seriesMap.set(series, conf.label)
         })
 
         const amScaleId = 'am-scale'
@@ -192,8 +191,9 @@ export function TFFChart({ data }: { data: RawTFFData[] }) {
             priceScaleId: amScaleId, color: '#2563eb', lineWidth: 2, title: 'Asset Manager Index'
         })
         amSeries.setData(processedData.map(d => ({ time: d.time, value: d.assetManagerIndex ?? 50 })))
+        seriesMap.set(amSeries, 'AM Index')
 
-        chart.priceScale(amScaleId).applyOptions({ scaleMargins: { top: 0.7, bottom: 0.15 } })
+        chart.priceScale(amScaleId).applyOptions({ scaleMargins: { top: 0.60, bottom: 0.22 } })
 
         const addIndexExtras = (scaleId: string) => {
             const b0 = chart.addSeries(LineSeries, { priceScaleId: scaleId, visible: false, lastValueVisible: false, priceLineVisible: false })
@@ -213,9 +213,25 @@ export function TFFChart({ data }: { data: RawTFFData[] }) {
             priceScaleId: lfScaleId, color: '#16a34a', lineWidth: 2, title: 'Leveraged Fund Index'
         })
         lfSeries.setData(processedData.map(d => ({ time: d.time, value: d.leveragedFundIndex ?? 50 })))
+        seriesMap.set(lfSeries, 'LF Index')
 
-        chart.priceScale(lfScaleId).applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } })
+        chart.priceScale(lfScaleId).applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } })
         addIndexExtras(lfScaleId)
+
+        chart.subscribeCrosshairMove((param) => {
+            if (param.time && param.point) {
+                const data: any = { date: param.time }
+                param.seriesData.forEach((value, series) => {
+                    const label = seriesMap.get(series)
+                    if (label) {
+                        data[label] = (value as any).value
+                    }
+                })
+                setLegend(data)
+            } else {
+                setLegend(null)
+            }
+        })
 
         const handleResize = () => {
             if (chartContainerRef.current) {
@@ -256,7 +272,37 @@ export function TFFChart({ data }: { data: RawTFFData[] }) {
                 </div>
             </div>
 
-            <div ref={chartContainerRef} un-h="150" />
+            <div un-position="relative" un-h="200" un-w="full">
+                {legend && (
+                    <div un-position="absolute top-2 left-2" un-z="10" un-p="2" un-shadow="sm" un-border="~ slate-100 rounded" un-text="xs" un-font="mono">
+                        <div un-text="slate-500 mb-1">{legend.date}</div>
+                        {seriesConfig.map(conf => {
+                            const val = legend[conf.label]
+                            if (val === undefined) return null
+                            return (
+                                <div key={conf.key} un-flex="~ gap-2 justify-between">
+                                    <span style={{ color: conf.color }}>{conf.label}:</span>
+                                    <span>{val.toLocaleString()}</span>
+                                </div>
+                            )
+                        })}
+                        <div un-h="1px" un-bg="slate-100" un-my="1" />
+                        {legend['AM Index'] !== undefined && (
+                            <div un-flex="~ gap-2 justify-between">
+                                <span un-text="blue-600">Asset Manager Index:</span>
+                                <span>{legend['AM Index'].toLocaleString()}</span>
+                            </div>
+                        )}
+                        {legend['LF Index'] !== undefined && (
+                            <div un-flex="~ gap-2 justify-between">
+                                <span un-text="green-600">Leveraged Fund Index:</span>
+                                <span>{legend['LF Index'].toLocaleString()}</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+                <div ref={chartContainerRef} un-h="full" un-w="full" />
+            </div>
         </div>
     )
 }
