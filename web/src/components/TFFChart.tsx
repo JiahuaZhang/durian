@@ -1,5 +1,6 @@
-import { createChart, LineSeries } from 'lightweight-charts'
+import { ColorType, createChart, LineSeries, LineStyle } from 'lightweight-charts'
 import { useEffect, useRef } from 'react'
+import { Stochastic } from 'technicalindicators'
 
 export type RawTFFData = {
     id: string
@@ -75,7 +76,7 @@ export type RawTFFData = {
     commodity_subgroup_name: string
     commodity_group_name: string
     futonly_or_combined: string
-    [key: string]: string | number
+    [key: string]: string
 }
 
 export type SeriesKey =
@@ -86,9 +87,14 @@ export type SeriesKey =
     | 'commercials'
     | 'nonCommercials'
 
-type ProcessedPoint = {
+export type ProcessedPoint = {
     time: string
-    [key: string]: number | string
+    assetManagers: number
+    leveragedFunds: number
+    dealers: number
+    otherReportables: number
+    assetManagerIndex?: number
+    leveragedFundIndex?: number
 }
 
 const seriesConfig = [
@@ -98,49 +104,118 @@ const seriesConfig = [
     { key: 'otherReportables', label: 'Other Reportables', color: '#94a3b8' }
 ]
 
+export function processTFFData(data: RawTFFData[]): ProcessedPoint[] {
+    const sortedRaw = data.slice().sort((a, b) => String(a.report_date_as_yyyy_mm_dd || '').localeCompare(String(b.report_date_as_yyyy_mm_dd || '')))
+
+    const fn = (val: string) => Number(val ?? '0')
+
+    const rawValues = sortedRaw.map(row => ({
+        time: row.report_date_as_yyyy_mm_dd.split('T')[0],
+        assetManagers: fn(row.asset_mgr_positions_long) - fn(row.asset_mgr_positions_short),
+        leveragedFunds: fn(row.lev_money_positions_long) - fn(row.lev_money_positions_short),
+        dealers: fn(row.dealer_positions_long_all) - fn(row.dealer_positions_short_all),
+        otherReportables: fn(row.other_rept_positions_long_all) - fn(row.other_rept_positions_short_all)
+    }))
+
+    // Calculate COT Index using Stochastic (Williams %R logic but 0-100)
+    // Stochastic (raw %K) = (Close - Lowest Low) / (Highest High - Lowest Low) * 100
+    // We pass the single series as High, Low, and Close.
+    const period = 52
+
+    // Asset Managers Index
+    const amValues = rawValues.map(d => d.assetManagers)
+    const amStoch = Stochastic.calculate({
+        high: amValues,
+        low: amValues,
+        close: amValues,
+        period: period,
+        signalPeriod: 3
+    })
+
+    // Leveraged Funds Index
+    const lfValues = rawValues.map(d => d.leveragedFunds)
+    const lfStoch = Stochastic.calculate({
+        high: lfValues,
+        low: lfValues,
+        close: lfValues,
+        period: period,
+        signalPeriod: 3
+    })
+
+    // Map back. Stochastic result length = input length - period + 1
+    // The result[0] corresponds to the period-th element (index period-1)
+    const resultOffset = period - 1
+
+    return rawValues.map((point, i) => {
+        let amIndex: number | undefined
+        let lfIndex: number | undefined
+
+        if (i >= resultOffset) {
+            const indexInResult = i - resultOffset
+            // Stochastic returns object usually { k, d }, we want k
+            if (amStoch[indexInResult]) amIndex = amStoch[indexInResult].k
+            if (lfStoch[indexInResult]) lfIndex = lfStoch[indexInResult].k
+        }
+
+        return {
+            ...point,
+            // Fallback to 50 or undefined for warmup period
+            assetManagerIndex: amIndex ?? 50,
+            leveragedFundIndex: lfIndex ?? 50
+        }
+    })
+}
+
 export function TFFChart({ data }: { data: RawTFFData[] }) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
-
-    const processedData: ProcessedPoint[] = data
-        .map(row => {
-            const date = String(row.report_date_as_yyyy_mm_dd).split('T')[0]
-
-            const fn = (val: string | number | undefined) => parseInt(String(val || '0'), 10)
-
-            const assetManagers = fn(row.asset_mgr_positions_long) - fn(row.asset_mgr_positions_short)
-            const leveragedFunds = fn(row.lev_money_positions_long) - fn(row.lev_money_positions_short)
-            const dealers = fn(row.dealer_positions_long_all) - fn(row.dealer_positions_short_all)
-            const otherReportables = fn(row.other_rept_positions_long_all) - fn(row.other_rept_positions_short_all)
-
-            return {
-                time: date,
-                assetManagers,
-                leveragedFunds,
-                dealers,
-                otherReportables
-            }
-        })
+    const processedData = processTFFData(data)
 
     useEffect(() => {
         if (!chartContainerRef.current) return
 
-        const chart = createChart(chartContainerRef.current)
+        const chart = createChart(chartContainerRef.current, {
+            rightPriceScale: {
+                scaleMargins: { top: 0, bottom: 0.3 },
+                borderColor: '#e2e8f0'
+            }
+        })
 
         seriesConfig.forEach(conf => {
             const series = chart.addSeries(LineSeries, {
-                color: conf.color,
-                lineWidth: 2,
-                title: conf.label,
-                priceScaleId: 'right',
+                color: conf.color, lineWidth: 2, title: conf.label, priceScaleId: 'right',
             })
-
-            const seriesData = processedData.map(d => ({
-                time: d.time,
-                value: Number(d[conf.key] ?? 0)
-            }))
-
-            series.setData(seriesData)
+            series.setData(processedData.map(d => ({ time: d.time, value: Number((d as any)[conf.key] ?? 0) })))
         })
+
+        const amScaleId = 'am-scale'
+        const amSeries = chart.addSeries(LineSeries, {
+            priceScaleId: amScaleId, color: '#2563eb', lineWidth: 2, title: 'Asset Manager Index'
+        })
+        amSeries.setData(processedData.map(d => ({ time: d.time, value: d.assetManagerIndex ?? 50 })))
+
+        chart.priceScale(amScaleId).applyOptions({ scaleMargins: { top: 0.7, bottom: 0.15 } })
+
+        const addIndexExtras = (scaleId: string) => {
+            const b0 = chart.addSeries(LineSeries, { priceScaleId: scaleId, visible: false, lastValueVisible: false, priceLineVisible: false })
+            const b100 = chart.addSeries(LineSeries, { priceScaleId: scaleId, visible: false, lastValueVisible: false, priceLineVisible: false })
+            b0.setData(processedData.map(d => ({ time: d.time, value: 0 })))
+            b100.setData(processedData.map(d => ({ time: d.time, value: 100 })))
+            const top = chart.addSeries(LineSeries, { priceScaleId: scaleId, color: '#ef4444', lineWidth: 1, lineStyle: LineStyle.Dashed, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
+            const bot = chart.addSeries(LineSeries, { priceScaleId: scaleId, color: '#ef4444', lineWidth: 1, lineStyle: LineStyle.Dashed, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false })
+            top.setData(processedData.map(d => ({ time: d.time, value: 90 })))
+            bot.setData(processedData.map(d => ({ time: d.time, value: 10 })))
+        }
+        addIndexExtras(amScaleId)
+
+
+        const lfScaleId = 'lf-scale'
+        const lfSeries = chart.addSeries(LineSeries, {
+            priceScaleId: lfScaleId, color: '#16a34a', lineWidth: 2, title: 'Leveraged Fund Index'
+        })
+        lfSeries.setData(processedData.map(d => ({ time: d.time, value: d.leveragedFundIndex ?? 50 })))
+
+        chart.priceScale(lfScaleId).applyOptions({ scaleMargins: { top: 0.85, bottom: 0 } })
+        addIndexExtras(lfScaleId)
 
         const handleResize = () => {
             if (chartContainerRef.current) {
@@ -149,6 +224,8 @@ export function TFFChart({ data }: { data: RawTFFData[] }) {
         }
         window.addEventListener('resize', handleResize)
 
+        setTimeout(() => chart.timeScale().fitContent(), 0)
+
         return () => {
             window.removeEventListener('resize', handleResize)
             chart.remove()
@@ -156,17 +233,30 @@ export function TFFChart({ data }: { data: RawTFFData[] }) {
     }, [processedData])
 
     return (
-        <div un-border="~ slate-200 rounded" un-shadow="sm" un-p="2" un-overflow="hidden">
-            <div un-flex="~ gap-4" un-justify="end">
-                {seriesConfig.map((conf) => (
-                    <div key={conf.key} un-flex="~ gap-2 items-center">
-                        <div un-w="2" un-h="2" un-rounded="full" style={{ backgroundColor: conf.color }}></div>
-                        <span un-text="xs" style={{ color: conf.color }}>{conf.label}</span>
+        <div un-border="~ slate-200 rounded" un-shadow="sm" un-p="2">
+            <div un-flex="~ gap-6 wrap" un-items="center" un-mb="2" un-px="2">
+                <div un-flex="~ gap-3" un-border-r="~ slate-200" un-pr="4">
+                    {seriesConfig.map((conf) => (
+                        <div key={conf.key} un-flex="~ gap-1 items-center">
+                            <div un-w="2" un-h="2" un-rounded="full" style={{ backgroundColor: conf.color }}></div>
+                            <span un-text="xs" style={{ color: conf.color }}>{conf.label}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div un-flex="~ gap-3">
+                    <div un-flex="~ items-center gap-1">
+                        <div un-w="2" un-h="2" un-rounded="full" un-bg="blue-600"></div>
+                        <span un-text="xs slate-600">Asset Manager Index</span>
                     </div>
-                ))}
+                    <div un-flex="~ items-center gap-1">
+                        <div un-w="2" un-h="2" un-rounded="full" un-bg="green-600"></div>
+                        <span un-text="xs slate-600">Leveraged Fund Index</span>
+                    </div>
+                </div>
             </div>
 
-            <div ref={chartContainerRef} un-h="100" />
+            <div ref={chartContainerRef} un-h="150" />
         </div>
     )
 }
