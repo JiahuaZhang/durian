@@ -46,7 +46,7 @@ export function Sidebar() {
 
             <nav un-p="x-3 y-2" un-flex="~ col 1 gap-2">
                 {navItems.map((item) => {
-                    const isActive = location.pathname.startsWith(item.to)
+                    const isActive = item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
                     return (
                         <Link className='group'
                             key={item.label}
