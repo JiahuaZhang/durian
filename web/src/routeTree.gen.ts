@@ -18,6 +18,9 @@ import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as FuturesMaRouteImport } from './routes/futures.ma'
 import { Route as DomBtcRouteImport } from './routes/dom.btc'
 import { Route as CotSpxRouteImport } from './routes/cot.spx'
+import { Route as CotSilverRouteImport } from './routes/cot.silver'
+import { Route as CotNdxRouteImport } from './routes/cot.ndx'
+import { Route as CotGoldRouteImport } from './routes/cot.gold'
 
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
@@ -64,6 +67,21 @@ const CotSpxRoute = CotSpxRouteImport.update({
   path: '/spx',
   getParentRoute: () => CotRoute,
 } as any)
+const CotSilverRoute = CotSilverRouteImport.update({
+  id: '/silver',
+  path: '/silver',
+  getParentRoute: () => CotRoute,
+} as any)
+const CotNdxRoute = CotNdxRouteImport.update({
+  id: '/ndx',
+  path: '/ndx',
+  getParentRoute: () => CotRoute,
+} as any)
+const CotGoldRoute = CotGoldRouteImport.update({
+  id: '/gold',
+  path: '/gold',
+  getParentRoute: () => CotRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -71,6 +89,9 @@ export interface FileRoutesByFullPath {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/cot/gold': typeof CotGoldRoute
+  '/cot/ndx': typeof CotNdxRoute
+  '/cot/silver': typeof CotSilverRoute
   '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
@@ -81,6 +102,9 @@ export interface FileRoutesByTo {
   '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/overview': typeof OverviewRoute
+  '/cot/gold': typeof CotGoldRoute
+  '/cot/ndx': typeof CotNdxRoute
+  '/cot/silver': typeof CotSilverRoute
   '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
@@ -93,6 +117,9 @@ export interface FileRoutesById {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/overview': typeof OverviewRoute
+  '/cot/gold': typeof CotGoldRoute
+  '/cot/ndx': typeof CotNdxRoute
+  '/cot/silver': typeof CotSilverRoute
   '/cot/spx': typeof CotSpxRoute
   '/dom/btc': typeof DomBtcRoute
   '/futures/ma': typeof FuturesMaRoute
@@ -106,6 +133,9 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/cot/gold'
+    | '/cot/ndx'
+    | '/cot/silver'
     | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
@@ -116,6 +146,9 @@ export interface FileRouteTypes {
     | '/cot'
     | '/economic-calendar'
     | '/overview'
+    | '/cot/gold'
+    | '/cot/ndx'
+    | '/cot/silver'
     | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
@@ -127,6 +160,9 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/overview'
+    | '/cot/gold'
+    | '/cot/ndx'
+    | '/cot/silver'
     | '/cot/spx'
     | '/dom/btc'
     | '/futures/ma'
@@ -207,14 +243,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CotSpxRouteImport
       parentRoute: typeof CotRoute
     }
+    '/cot/silver': {
+      id: '/cot/silver'
+      path: '/silver'
+      fullPath: '/cot/silver'
+      preLoaderRoute: typeof CotSilverRouteImport
+      parentRoute: typeof CotRoute
+    }
+    '/cot/ndx': {
+      id: '/cot/ndx'
+      path: '/ndx'
+      fullPath: '/cot/ndx'
+      preLoaderRoute: typeof CotNdxRouteImport
+      parentRoute: typeof CotRoute
+    }
+    '/cot/gold': {
+      id: '/cot/gold'
+      path: '/gold'
+      fullPath: '/cot/gold'
+      preLoaderRoute: typeof CotGoldRouteImport
+      parentRoute: typeof CotRoute
+    }
   }
 }
 
 interface CotRouteChildren {
+  CotGoldRoute: typeof CotGoldRoute
+  CotNdxRoute: typeof CotNdxRoute
+  CotSilverRoute: typeof CotSilverRoute
   CotSpxRoute: typeof CotSpxRoute
 }
 
 const CotRouteChildren: CotRouteChildren = {
+  CotGoldRoute: CotGoldRoute,
+  CotNdxRoute: CotNdxRoute,
+  CotSilverRoute: CotSilverRoute,
   CotSpxRoute: CotSpxRoute,
 }
 

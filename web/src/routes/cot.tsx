@@ -5,6 +5,25 @@ export const Route = createFileRoute('/cot')({
   component: CotLayout,
 })
 
+const links = [
+  {
+    to: '/cot/spx',
+    label: 'S&P 500',
+  },
+  {
+    to: '/cot/ndx',
+    label: 'Nasdaq (NDX)',
+  },
+  {
+    to: '/cot/gold',
+    label: 'Gold',
+  },
+  {
+    to: '/cot/silver',
+    label: 'Silver',
+  },
+]
+
 function CotLayout() {
   return (
     <div un-flex="~ col">
@@ -15,19 +34,19 @@ function CotLayout() {
         </div>
 
         <nav un-flex="~ gap-2">
-          <Link
-            to="/cot/spx"
-            activeProps={{ className: 'bg-blue-50 text-blue-800' }}
-            inactiveProps={{ className: 'text-slate-500 hover:bg-slate-50 hover:text-slate-700' }}
-            un-p="x-3 y-1.5" un-text="sm" un-border="rounded"
-          >
-            S&P 500
-          </Link>
-
-          {/* Placeholders for Future */}
-          <span un-px="3" un-py="1.5" un-text="sm slate-400" title="Coming Soon">Nasdaq (NDX)</span>
-          <span un-px="3" un-py="1.5" un-text="sm slate-400" title="Coming Soon">Gold</span>
-          <span un-px="3" un-py="1.5" un-text="sm slate-400" title="Coming Soon">Silver</span>
+          {
+            links.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                activeProps={{ className: 'bg-blue-50 text-blue-800' }}
+                inactiveProps={{ className: 'text-slate-500 hover:bg-slate-50 hover:text-slate-700' }}
+                un-p="x-3 y-1.5" un-text="sm" un-border="rounded"
+              >
+                {link.label}
+              </Link>
+            ))
+          }
         </nav>
       </div>
 
