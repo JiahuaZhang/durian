@@ -19,12 +19,6 @@ function CotPage() {
 
   return (
     <div un-p="4" un-flex="~ col" un-gap="6" un-h="full" un-overflow-y="auto">
-      <div un-flex="~ justify-between items-center wrap" un-gap="4">
-        <p un-text="sm slate-500">
-          Data Source: <span un-font="medium text-slate-700">CFTC TFF Report (S&P 500)</span>
-        </p>
-      </div>
-
       <div un-flex="~ col" un-gap="6">
         <TFFChart data={financialData} />
       </div>
