@@ -23,7 +23,7 @@ const config = defineConfig({
       '/api/yahoo': {
         target: 'https://query1.finance.yahoo.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/yahoo/, '/v8/finance'),
+        rewrite: (path) => path.replace(/^\/api\/yahoo/, ''),
       },
     },
   },
