@@ -7,7 +7,6 @@ export const Route = createFileRoute('/gex')({
 const tabs = [
   { name: 'S&P 500', to: '/gex/spx' },
   { name: 'Nasdaq 100', to: '/gex/ndx' },
-  { name: 'Bitcoin', to: '/gex/btc' },
 ]
 
 function GexLayout() {
