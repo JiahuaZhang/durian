@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 # User Preferences and Coding Rules
 
 ## General Principles
@@ -14,9 +18,14 @@
 ## Styling (UnoCSS)
 -   **Library**: Use `unocss` exclusively. Avoid `tailwind` classes or inline `style` props where possible.
 -   **Attributify Mode**: Use the attributify preset (e.g., `un-text="red"`).
+-   **Correctiness**: There's no `un-font="medium"`.
 -   **Grouping**: Group related utilities in a single attribute value.
     -   *Good*: `un-position="absolute top-2 left-2"`
     -   *Bad*: `un-position="absolute" un-top="2" un-left="2"`
+    -   *Good*: `un-p="x-2 y-1"`
+    -   *Bad*: `un-px="2" un-py="1"`
+    -   *Good*: `un-border="~ purple-600 rounded-lg"`
+    -   *Bad*: `un-rounded="lg" un-border="~" un-border-color="purple-600"`
 -   **Avoid Tilda**: Prefer explicit values over boolean tildes.
     -   *Good*: `un-font="bold"`
     -   *Bad*: `un-font-bold="~"`

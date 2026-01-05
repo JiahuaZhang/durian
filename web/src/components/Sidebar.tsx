@@ -6,6 +6,7 @@ import {
     Home,
     LayoutGrid,
     Menu,
+    Newspaper,
     PieChart,
     PiggyBank,
     TrendingUp
@@ -19,11 +20,12 @@ export function Sidebar() {
     const navItems = [
         { icon: Home, label: 'Home', to: '/' },
         { icon: LayoutGrid, label: 'Overview', to: '/overview' },
+        { icon: Newspaper, label: 'News', to: '/news' },
         { icon: CalendarDays, label: 'Calendar', to: '/economic-calendar' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
         { icon: BarChart3, label: 'Depth (DOM)', to: '/dom/btc' },
         { icon: PieChart, label: 'COT Report', to: '/cot' },
-        { icon: TrendingUp, label: 'Gamma Exposure', to: '/gex/spx' },
+        { icon: TrendingUp, label: 'Gamma Exposure', to: '/gex' },
     ]
 
     return (

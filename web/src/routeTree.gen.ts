@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OverviewRouteImport } from './routes/overview'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as GexRouteImport } from './routes/gex'
 import { Route as FuturesRouteImport } from './routes/futures'
 import { Route as EconomicCalendarRouteImport } from './routes/economic-calendar'
@@ -27,6 +28,11 @@ import { Route as CotGoldRouteImport } from './routes/cot.gold'
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GexRoute = GexRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/gex': typeof GexRouteWithChildren
+  '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/gex': typeof GexRouteWithChildren
+  '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
   '/gex': typeof GexRouteWithChildren
+  '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/gex'
+    | '/news'
     | '/overview'
     | '/cot/gold'
     | '/cot/ndx'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/cot'
     | '/economic-calendar'
     | '/gex'
+    | '/news'
     | '/overview'
     | '/cot/gold'
     | '/cot/ndx'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/economic-calendar'
     | '/futures'
     | '/gex'
+    | '/news'
     | '/overview'
     | '/cot/gold'
     | '/cot/ndx'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   EconomicCalendarRoute: typeof EconomicCalendarRoute
   FuturesRoute: typeof FuturesRouteWithChildren
   GexRoute: typeof GexRouteWithChildren
+  NewsRoute: typeof NewsRoute
   OverviewRoute: typeof OverviewRoute
   DomBtcRoute: typeof DomBtcRoute
 }
@@ -210,6 +223,13 @@ declare module '@tanstack/react-router' {
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof OverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gex': {
@@ -351,6 +371,7 @@ const rootRouteChildren: RootRouteChildren = {
   EconomicCalendarRoute: EconomicCalendarRoute,
   FuturesRoute: FuturesRouteWithChildren,
   GexRoute: GexRouteWithChildren,
+  NewsRoute: NewsRoute,
   OverviewRoute: OverviewRoute,
   DomBtcRoute: DomBtcRoute,
 }
