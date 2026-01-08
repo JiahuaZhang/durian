@@ -3,6 +3,7 @@ import {
     BarChart3,
     CalendarDays,
     ChevronLeft,
+    History,
     Home,
     LayoutGrid,
     Menu,
@@ -26,6 +27,7 @@ export function Sidebar() {
         { icon: BarChart3, label: 'Depth (DOM)', to: '/dom/btc' },
         { icon: PieChart, label: 'COT Report', to: '/cot' },
         { icon: TrendingUp, label: 'Gamma Exposure', to: '/gex' },
+        { icon: History, label: 'History', to: '/history' },
     ]
 
     return (

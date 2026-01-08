@@ -1,83 +1,89 @@
-
 /**
- * Calculates the COT Index for a given value relative to a historical range.
- * Formula: (Current - Min) / (Max - Min) * 100
- * @param current The current value (or array of values ending with current)
- * @param history Array of historical values to determine Min/Max (should include current)
- * @returns number between 0 and 100
+ * Calculate the percentile rank of a value within a distribution.
+ * Returns a value between 0 and 100.
  */
-export function calculateCotIndex(current: number, history: number[]): number {
-    if (history.length === 0) return 0
-    const min = Math.min(...history)
-    const max = Math.max(...history)
-    if (max === min) return 50 // No range
-    return ((current - min) / (max - min)) * 100
+export function calculatePercentile(value: number, values: number[]): number {
+    if (values.length === 0) return 50
+    const sorted = [...values].sort((a, b) => a - b)
+    const belowCount = sorted.filter(v => v < value).length
+    const equalCount = sorted.filter(v => v === value).length
+    return ((belowCount + 0.5 * equalCount) / sorted.length) * 100
 }
 
 /**
- * Calculates the Z-Score (Standard deviation score).
- * Formula: (Current - Mean) / StdDev
- * @param current The current value
- * @param history Array of historical values
+ * Normal probability density function.
+ * Returns the height of the bell curve at point x.
  */
-export function calculateZScore(current: number, history: number[]): number {
-    if (history.length < 2) return 0
-    const mean = history.reduce((a, b) => a + b, 0) / history.length
-    const variance = history.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / history.length
+export function normalPdf(x: number, mean: number, stdDev: number): number {
+    if (stdDev === 0) return x === mean ? 1 : 0
+    const exponent = -0.5 * Math.pow((x - mean) / stdDev, 2)
+    return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(exponent)
+}
+
+export type DistributionStats = {
+    mean: number
+    stdDev: number
+    skewness: number
+    kurtosis: number
+    min: number
+    max: number
+    count: number
+}
+
+/**
+ * Calculate all distribution statistics in a single efficient pass.
+ * Avoids redundant mean/stdDev calculations.
+ */
+export function calculateDistributionStats(values: number[]): DistributionStats {
+    const n = values.length
+    if (n === 0) {
+        return { mean: 0, stdDev: 0, skewness: 0, kurtosis: 0, min: 0, max: 0, count: 0 }
+    }
+
+    // Single pass for sum, min, max
+    let sum = 0
+    let min = values[0]
+    let max = values[0]
+    for (const v of values) {
+        sum += v
+        if (v < min) min = v
+        if (v > max) max = v
+    }
+    const mean = sum / n
+
+    if (n < 2) {
+        return { mean, stdDev: 0, skewness: 0, kurtosis: 0, min, max, count: n }
+    }
+
+    // Second pass for variance, skewness, kurtosis
+    let sumSquaredDiff = 0
+    let sumCubedDiff = 0
+    let sumFourthDiff = 0
+    for (const v of values) {
+        const diff = v - mean
+        const diffSquared = diff * diff
+        sumSquaredDiff += diffSquared
+        sumCubedDiff += diffSquared * diff
+        sumFourthDiff += diffSquared * diffSquared
+    }
+
+    const variance = sumSquaredDiff / n
     const stdDev = Math.sqrt(variance)
-    if (stdDev === 0) return 0
-    return (current - mean) / stdDev
-}
 
-export interface DivergenceResult {
-    type: 'bearish' | 'bullish' | 'none'
-    description?: string
-}
+    let skewness = 0
+    let kurtosis = 0
 
-/**
- * Detects basic divergence between Price and Indicator over a lookback window.
- * 
- * Bearish: Price makes New High, Indicator fails to make New High.
- * Bullish: Price makes New Low, Indicator fails to make New Low.
- * 
- * @param price Current price
- * @param priceHistory History of prices (lookback window)
- * @param indicator Current indicator value
- * @param indicatorHistory History of indicator (lookback window)
- */
-export function detectDivergence(
-    price: number,
-    priceHistory: number[],
-    indicator: number,
-    indicatorHistory: number[]
-): DivergenceResult {
-    if (priceHistory.length === 0 || indicatorHistory.length === 0) return { type: 'none' }
-
-    const priceMax = Math.max(...priceHistory)
-    const priceMin = Math.min(...priceHistory)
-    const indMax = Math.max(...indicatorHistory)
-    const indMin = Math.min(...indicatorHistory)
-
-    // Bearish Divergence Check
-    // Price is at or near new high (within 1%)
-    const priceIsHigh = price >= priceMax * 0.99
-    // Indicator is SIGNIFICANTLY below its high (e.g., < 95% of range or just raw comparison)
-    // Let's use raw: Current indicator is less than its max in the window
-    const indFailedHigh = indicator < indMax
-
-    if (priceIsHigh && indFailedHigh) {
-        return { type: 'bearish', description: 'Price making highs, Positioning lagging (Smart Money Divergence)' }
+    if (stdDev !== 0 && n >= 3) {
+        // Skewness: adjusted Fisher-Pearson
+        const m3 = sumCubedDiff / n
+        skewness = (n / ((n - 1) * (n - 2))) * (m3 / Math.pow(stdDev, 3)) * n
     }
 
-    // Bullish Divergence Check
-    // Price is at or near new low (within 1%)
-    const priceIsLow = price <= priceMin * 1.01
-    // Indicator is ABOVE its low
-    const indFailedLow = indicator > indMin
-
-    if (priceIsLow && indFailedLow) {
-        return { type: 'bullish', description: 'Price making lows, Positioning holding up (Accumulation)' }
+    if (stdDev !== 0 && n >= 4) {
+        // Excess kurtosis
+        const m4 = sumFourthDiff / n
+        kurtosis = (m4 / Math.pow(stdDev, 4)) - 3
     }
 
-    return { type: 'none' }
+    return { mean, stdDev, skewness, kurtosis, min, max, count: n }
 }
