@@ -13,8 +13,8 @@ export const Route = createFileRoute('/history')({
     loaderDeps: ({ search }) => ({ symbol: search.symbol }),
     loader: async ({ deps }) => {
         const symbol = deps.symbol || '^SPX'
-        const data = await getHistoricalData(symbol)
-        return { symbol, data }
+        const data = await getHistoricalData({ data: symbol })
+        return { symbol, data: data ?? [] }
     },
     component: HistoryPage,
     errorComponent: ({ error }) => (
