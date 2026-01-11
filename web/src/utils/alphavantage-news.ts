@@ -1,3 +1,5 @@
+import { createServerFn } from '@tanstack/react-start';
+
 // Alpha Vantage News & Sentiment API Service
 // Free tier: 25 requests/day, 5 requests/minute
 
@@ -78,56 +80,58 @@ function getCacheKey(filter?: NewsFilter): string {
     });
 }
 
-export async function fetchMarketNews(filter?: NewsFilter): Promise<NewsResponse> {
-    const cacheKey = getCacheKey(filter);
-    const now = Date.now();
+export const fetchMarketNews = createServerFn({ method: 'GET' })
+    .inputValidator((filter?: NewsFilter) => filter)
+    .handler(async ({ data: filter }) => {
+        const cacheKey = getCacheKey(filter);
+        const now = Date.now();
 
-    const cached = newsCache.get(cacheKey);
-    if (cached && now - cached.timestamp < CACHE_DURATION) {
-        console.log('Returning cached news data for:', cacheKey);
-        return cached.data;
-    }
-
-    const params = new URLSearchParams({
-        function: 'NEWS_SENTIMENT',
-        apikey: API_KEY,
-        sort: filter?.sort || 'LATEST',
-        limit: String(filter?.limit ?? 50),
-    });
-
-    // Apply topics - use default if none specified and no tickers
-    const topics = filter?.topics || (!filter?.tickers ? DEFAULT_TOPICS : undefined);
-    if (topics) params.set('topics', topics);
-    if (filter?.tickers) params.set('tickers', filter.tickers);
-    if (filter?.time_from) params.set('time_from', filter.time_from);
-    if (filter?.time_to) params.set('time_to', filter.time_to);
-
-    const url = `https://www.alphavantage.co/query?${params.toString()}`;
-    console.log('Fetching news:', url.replace(API_KEY, '***'));
-
-    try {
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status}`);
+        const cached = newsCache.get(cacheKey);
+        if (cached && now - cached.timestamp < CACHE_DURATION) {
+            console.log('Returning cached news data for:', cacheKey);
+            return cached.data;
         }
 
-        const data = await response.json();
+        const params = new URLSearchParams({
+            function: 'NEWS_SENTIMENT',
+            apikey: API_KEY,
+            sort: filter?.sort || 'LATEST',
+            limit: String(filter?.limit ?? 50),
+        });
 
-        if (data.Note || data.Information) {
-            console.warn('Alpha Vantage API limit:', data.Note || data.Information);
+        // Apply topics - use default if none specified and no tickers
+        const topics = filter?.topics || (!filter?.tickers ? DEFAULT_TOPICS : undefined);
+        if (topics) params.set('topics', topics);
+        if (filter?.tickers) params.set('tickers', filter.tickers);
+        if (filter?.time_from) params.set('time_from', filter.time_from);
+        if (filter?.time_to) params.set('time_to', filter.time_to);
+
+        const url = `https://www.alphavantage.co/query?${params.toString()}`;
+        console.log('Fetching news:', url.replace(API_KEY, '***'));
+
+        try {
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`API request failed: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.Note || data.Information) {
+                console.warn('Alpha Vantage API limit:', data.Note || data.Information);
+                if (cached) return cached.data;
+                return { items: '0', sentiment_score_definition: '', relevance_score_definition: '', feed: [] } as NewsResponse;
+            }
+
+            newsCache.set(cacheKey, { data, timestamp: now });
+            return data as NewsResponse;
+        } catch (error) {
+            console.error('Failed to fetch news:', error);
             if (cached) return cached.data;
-            return { items: '0', sentiment_score_definition: '', relevance_score_definition: '', feed: [] };
+            throw error;
         }
-
-        newsCache.set(cacheKey, { data, timestamp: now });
-        return data;
-    } catch (error) {
-        console.error('Failed to fetch news:', error);
-        if (cached) return cached.data;
-        throw error;
-    }
-}
+    });
 
 export function getSentimentInfo(score: number): {
     label: string;

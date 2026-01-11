@@ -46,9 +46,11 @@ function NewsPage() {
       setLoading(true);
       setError(null);
       const data = await fetchMarketNews({
-        topics: topics ?? undefined,
-        tickers: tickers ?? undefined,
-        limit: 50,
+        data: {
+          topics: topics ?? undefined,
+          tickers: tickers ?? undefined,
+          limit: 50,
+        }
       });
       setNewsData(data);
     } catch (err) {
