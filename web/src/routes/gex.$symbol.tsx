@@ -7,7 +7,7 @@ export const Route = createFileRoute('/gex/$symbol')({
     component: GexSymbolPage,
     loader: async ({ params }) => {
         try {
-            const data = await getGexData(params.symbol)
+            const data = await getGexData({ data: params.symbol })
             return { symbol: params.symbol, data }
         } catch (e) {
             console.error(e)

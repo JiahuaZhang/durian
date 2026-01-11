@@ -1,3 +1,5 @@
+import { createServerFn } from '@tanstack/react-start'
+
 type YahooOption = {
     contractSymbol: string
     strike: number
@@ -134,107 +136,109 @@ function calculateGamma(
     return nd1 / (S * sigma * Math.sqrt(T))
 }
 
-export async function getGexData(symbol: string): Promise<GexProfile> {
-    let { crumb, cookie } = await getSession()
+export const getGexData = createServerFn({ method: "GET" })
+    .inputValidator((symbol: string) => symbol)
+    .handler(async ({ data: symbol }) => {
+        let { crumb, cookie } = await getSession()
 
-    const headers: Record<string, string> = { 'User-Agent': USER_AGENT }
-    if (cookie) headers['Cookie'] = cookie
+        const headers: Record<string, string> = { 'User-Agent': USER_AGENT }
+        if (cookie) headers['Cookie'] = cookie
 
-    // Map URL-friendly symbols to Yahoo Finance symbols
-    const symbolMap: Record<string, string> = {
-        'SPX': '^SPX',
-        'NDX': '^NDX',
-        'DJI': '^DJI',
-        'VIX': '^VIX',
-    }
-    const upperSymbol = symbol.toUpperCase()
-    const yahooSymbol = symbolMap[upperSymbol] ?? upperSymbol
+        // Map URL-friendly symbols to Yahoo Finance symbols
+        const symbolMap: Record<string, string> = {
+            'SPX': '^SPX',
+            'NDX': '^NDX',
+            'DJI': '^DJI',
+            'VIX': '^VIX',
+        }
+        const upperSymbol = symbol.toUpperCase()
+        const yahooSymbol = symbolMap[upperSymbol] ?? upperSymbol
 
-    const crumbParam = crumb ? `&crumb=${crumb}` : ''
-    const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(yahooSymbol)}?${crumbParam}`
+        const crumbParam = crumb ? `&crumb=${crumb}` : ''
+        const url = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(yahooSymbol)}?${crumbParam}`
 
-    let response = await fetch(url, { headers })
+        let response = await fetch(url, { headers })
 
-    // If 401, session expired - clear cache and retry once
-    if (response.status === 401) {
-        console.warn('Yahoo: Session expired, refreshing...')
-        cachedCrumb = null
-        cachedCookie = null
-        const newSession = await getSession()
-        crumb = newSession.crumb
-        cookie = newSession.cookie
+        // If 401, session expired - clear cache and retry once
+        if (response.status === 401) {
+            console.warn('Yahoo: Session expired, refreshing...')
+            cachedCrumb = null
+            cachedCookie = null
+            const newSession = await getSession()
+            crumb = newSession.crumb
+            cookie = newSession.cookie
 
-        const retryHeaders: Record<string, string> = { 'User-Agent': USER_AGENT }
-        if (cookie) retryHeaders['Cookie'] = cookie
-        const retryUrl = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(yahooSymbol)}?${crumb ? `&crumb=${crumb}` : ''}`
-        response = await fetch(retryUrl, { headers: retryHeaders })
-    }
-
-    if (!response.ok) {
-        const text = await response.text()
-        throw new Error(`Failed to fetch options data (${response.status}): ${text.slice(0, 100)}`)
-    }
-
-    const data: YahooResponse = await response.json()
-    const result = data.optionChain.result[0]
-
-    if (!result) throw new Error(`No option data found for ${upperSymbol}`)
-    if (!result.options || result.options.length === 0) {
-        throw new Error(`No options chain available for ${upperSymbol}. Try SPY or QQQ instead.`)
-    }
-
-    const currentPrice = result.quote.regularMarketPrice
-    const now = Date.now() / 1000
-
-    const strikeMap = new Map<number, GexStrikeData>()
-
-    const processOption = (opt: YahooOption, isCall: boolean) => {
-        if (!opt.openInterest) return
-
-        const T = (opt.expiration - now) / (365 * 24 * 3600)
-        const iv = opt.impliedVolatility || 0
-
-        const gamma = calculateGamma(currentPrice, opt.strike, T, iv)
-        const gexVal = gamma * opt.openInterest * 100 * currentPrice
-
-        const existing = strikeMap.get(opt.strike) || {
-            strike: opt.strike,
-            callGex: 0,
-            putGex: 0,
-            totalGex: 0,
-            callOi: 0,
-            putOi: 0
+            const retryHeaders: Record<string, string> = { 'User-Agent': USER_AGENT }
+            if (cookie) retryHeaders['Cookie'] = cookie
+            const retryUrl = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(yahooSymbol)}?${crumb ? `&crumb=${crumb}` : ''}`
+            response = await fetch(retryUrl, { headers: retryHeaders })
         }
 
-        if (isCall) {
-            existing.callGex += gexVal
-            existing.callOi += opt.openInterest
-        } else {
-            existing.putGex += gexVal
-            existing.putOi += opt.openInterest
+        if (!response.ok) {
+            const text = await response.text()
+            throw new Error(`Failed to fetch options data (${response.status}): ${text.slice(0, 100)}`)
         }
 
-        strikeMap.set(opt.strike, existing)
-    }
+        const data: YahooResponse = await response.json()
+        const result = data.optionChain.result[0]
 
-    result.options.forEach(chain => {
-        chain.calls.forEach(o => processOption(o, true))
-        chain.puts.forEach(o => processOption(o, false))
+        if (!result) throw new Error(`No option data found for ${upperSymbol}`)
+        if (!result.options || result.options.length === 0) {
+            throw new Error(`No options chain available for ${upperSymbol}. Try SPY or QQQ instead.`)
+        }
+
+        const currentPrice = result.quote.regularMarketPrice
+        const now = Date.now() / 1000
+
+        const strikeMap = new Map<number, GexStrikeData>()
+
+        const processOption = (opt: YahooOption, isCall: boolean) => {
+            if (!opt.openInterest) return
+
+            const T = (opt.expiration - now) / (365 * 24 * 3600)
+            const iv = opt.impliedVolatility || 0
+
+            const gamma = calculateGamma(currentPrice, opt.strike, T, iv)
+            const gexVal = gamma * opt.openInterest * 100 * currentPrice
+
+            const existing = strikeMap.get(opt.strike) || {
+                strike: opt.strike,
+                callGex: 0,
+                putGex: 0,
+                totalGex: 0,
+                callOi: 0,
+                putOi: 0
+            }
+
+            if (isCall) {
+                existing.callGex += gexVal
+                existing.callOi += opt.openInterest
+            } else {
+                existing.putGex += gexVal
+                existing.putOi += opt.openInterest
+            }
+
+            strikeMap.set(opt.strike, existing)
+        }
+
+        result.options.forEach(chain => {
+            chain.calls.forEach(o => processOption(o, true))
+            chain.puts.forEach(o => processOption(o, false))
+        })
+
+        const strikes = Array.from(strikeMap.values()).map(s => ({
+            ...s,
+            totalGex: s.callGex - s.putGex
+        })).sort((a, b) => a.strike - b.strike)
+
+        const totalNetGex = strikes.reduce((sum, s) => sum + s.totalGex, 0)
+
+        return {
+            symbol: result.underlyingSymbol,
+            price: currentPrice,
+            totalNetGex,
+            zeroGexStrike: 0,
+            strikes,
+            expirationDate: new Date(result.options[0].expirationDate * 1000).toLocaleDateString()
+        }
     })
-
-    const strikes = Array.from(strikeMap.values()).map(s => ({
-        ...s,
-        totalGex: s.callGex - s.putGex
-    })).sort((a, b) => a.strike - b.strike)
-
-    const totalNetGex = strikes.reduce((sum, s) => sum + s.totalGex, 0)
-
-    return {
-        symbol: result.underlyingSymbol,
-        price: currentPrice,
-        totalNetGex,
-        zeroGexStrike: 0,
-        strikes,
-        expirationDate: new Date(result.options[0].expirationDate * 1000).toLocaleDateString()
-    }
-}
