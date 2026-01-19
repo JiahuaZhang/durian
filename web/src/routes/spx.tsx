@@ -16,7 +16,7 @@ export const Route = createFileRoute('/spx')({
 function RouteComponent() {
   const { data, symbol } = Route.useLoaderData()
   return (
-    <div un-h="full" un-w="full" un-p="4">
+    <div un-p="4">
       <MAChart data={data} title={symbol} />
     </div>
   )

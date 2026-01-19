@@ -26,8 +26,8 @@ export const DEFAULT_INDICATORS: Indicator[] = [
     { id: 'sma20', type: 'SMA', period: 20, color: '#FF9800', label: '20 SMA' },
     { id: 'sma50', type: 'SMA', period: 50, color: '#F44336', label: '50 SMA' },
     { id: 'sma200', type: 'SMA', period: 200, color: '#333333', label: '200 SMA' },
-    { id: 'ema9', type: 'EMA', period: 9, color: '#9C27B0', label: '9 EMA' },
-    { id: 'ema20', type: 'EMA', period: 20, color: '#3F51B5', label: '20 EMA' },
+    { id: 'ema11', type: 'EMA', period: 11, color: '#9C27B0', label: '11 EMA' },
+    { id: 'ema22', type: 'EMA', period: 22, color: '#3F51B5', label: '22 EMA' },
     { id: 'ema50', type: 'EMA', period: 50, color: '#E91E63', label: '50 EMA' },
 ]
 
@@ -57,7 +57,7 @@ export function MAChart({ data, title = 'SPX', indicators = DEFAULT_INDICATORS, 
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const seriesCache = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
     const [legend, setLegend] = useState<Legend>(null)
-    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(defaultActiveIndicators || ['sma20', 'sma50', 'ema20']))
+    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(defaultActiveIndicators || ['sma20', 'sma50', 'ema22']))
 
     const toggleIndicator = (id: string) => {
         setActiveToggles(prev => {
