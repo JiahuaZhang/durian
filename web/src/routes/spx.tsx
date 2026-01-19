@@ -8,8 +8,7 @@ export const Route = createFileRoute('/spx')({
     const symbol = '^SPX'
     const interval = '1d'
     const range = '5y'
-    const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
-    const data = await fetchYahooData(symbol, interval, range, baseUrl);
+    const data = await fetchYahooData({ data: { symbol, interval, range } });
     return { data, symbol }
   },
 })

@@ -27,7 +27,16 @@ trigger: always_on
     -   *Good*: `un-border="~ purple-600 rounded-lg"`
     -   *Bad*: `un-rounded="lg" un-border="~" un-border-color="purple-600"`
 -   **Avoid Tilda**: Prefer explicit values over boolean tildes.
-    -   *Good*: `un-font="bold"`
-    -   *Bad*: `un-font-bold="~"`
     -   *Good*: `un-font="semibold"`
     -   *Bad*: `un-font-semibold="~"`
+
+## TanStack Start
+-   **Server Functions**: When a helper function (like data fetching) is called inside a `loader` or requires HTTP API requests, use `createServerFn` from `@tanstack/react-start`.
+    -   *Why*: This ensures the code runs on the server, avoiding CORS issues and leveraging server-side capabilities.
+    -   *Pattern*:
+        ```typescript
+        import { createServerFn } from '@tanstack/react-start';
+        export const myServerFn = createServerFn({ method: "GET" })
+        .inputValidator((d: MyType) => d)
+        .handler(async ({ data }) => { ... })
+        ```

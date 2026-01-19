@@ -22,9 +22,8 @@ export const Route = createFileRoute('/futures/ma')({
     },
     loaderDeps: ({ search: { symbol, interval } }) => ({ symbol, interval }),
     loader: async ({ deps: { symbol, interval } }) => {
-        const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
         const range = interval.endsWith('m') || interval.endsWith('h') ? '6mo' : '5y';
-        const data = await fetchYahooData(symbol, interval, range, baseUrl);
+        const data = await fetchYahooData({ data: { symbol, interval, range } });
 
         return { data, symbol };
     }

@@ -1,3 +1,4 @@
+import { createServerFn } from '@tanstack/react-start';
 import { CandleData } from "../components/MAChart";
 
 export type YahooQuote = {
@@ -84,11 +85,14 @@ export function fromYahooData(json: YahooResponse): CandleData[] {
 
 }
 
-export async function fetchYahooData(symbol: string, interval: string, range: string, baseUrl: string = '') {
-    const response = await fetch(`${baseUrl}/api/yahoo/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.statusText}`);
-    }
-    const json = await response.json();
-    return fromYahooData(json);
-}
+export const fetchYahooData = createServerFn({ method: "GET" })
+    .inputValidator((d: { symbol: string, interval: string, range: string }) => d)
+    .handler(async (ctx: { data: { symbol: string, interval: string, range: string } }) => {
+        const { symbol, interval, range } = ctx.data;
+        const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+        const json = await response.json();
+        return fromYahooData(json);
+    });
