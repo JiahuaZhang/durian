@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SpxRouteImport } from './routes/spx'
 import { Route as OverviewRouteImport } from './routes/overview'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as HistoryRouteImport } from './routes/history'
@@ -26,6 +27,11 @@ import { Route as CotSilverRouteImport } from './routes/cot.silver'
 import { Route as CotNdxRouteImport } from './routes/cot.ndx'
 import { Route as CotGoldRouteImport } from './routes/cot.gold'
 
+const SpxRoute = SpxRouteImport.update({
+  id: '/spx',
+  path: '/spx',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OverviewRoute = OverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/history': typeof HistoryRoute
   '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
+  '/spx': typeof SpxRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
   '/cot/silver': typeof CotSilverRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/history': typeof HistoryRoute
   '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
+  '/spx': typeof SpxRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
   '/cot/silver': typeof CotSilverRoute
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/history': typeof HistoryRoute
   '/news': typeof NewsRoute
   '/overview': typeof OverviewRoute
+  '/spx': typeof SpxRoute
   '/cot/gold': typeof CotGoldRoute
   '/cot/ndx': typeof CotNdxRoute
   '/cot/silver': typeof CotSilverRoute
@@ -172,6 +181,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/news'
     | '/overview'
+    | '/spx'
     | '/cot/gold'
     | '/cot/ndx'
     | '/cot/silver'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/news'
     | '/overview'
+    | '/spx'
     | '/cot/gold'
     | '/cot/ndx'
     | '/cot/silver'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/history'
     | '/news'
     | '/overview'
+    | '/spx'
     | '/cot/gold'
     | '/cot/ndx'
     | '/cot/silver'
@@ -226,11 +238,19 @@ export interface RootRouteChildren {
   HistoryRoute: typeof HistoryRoute
   NewsRoute: typeof NewsRoute
   OverviewRoute: typeof OverviewRoute
+  SpxRoute: typeof SpxRoute
   DomBtcRoute: typeof DomBtcRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/spx': {
+      id: '/spx'
+      path: '/spx'
+      fullPath: '/spx'
+      preLoaderRoute: typeof SpxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/overview': {
       id: '/overview'
       path: '/overview'
@@ -394,6 +414,7 @@ const rootRouteChildren: RootRouteChildren = {
   HistoryRoute: HistoryRoute,
   NewsRoute: NewsRoute,
   OverviewRoute: OverviewRoute,
+  SpxRoute: SpxRoute,
   DomBtcRoute: DomBtcRoute,
 }
 export const routeTree = rootRouteImport

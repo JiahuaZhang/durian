@@ -12,23 +12,15 @@ export type CandleData = {
     adjustClose: number
 }
 
-type MAChartProps = {
-    data: CandleData[]
-    title?: string
+export type Indicator = {
+    id: string
+    type: 'SMA' | 'EMA'
+    period: number
+    color: string
+    label: string
 }
 
-type Legend = (CandleData & {
-    'sma5': number
-    'sma10': number
-    'sma20': number
-    'sma50': number
-    'sma200': number
-    'ema9': number
-    'ema20': number
-    'ema50': number
-}) | null;
-
-const AVAILABLE_INDICATORS = [
+export const DEFAULT_INDICATORS: Indicator[] = [
     { id: 'sma5', type: 'SMA', period: 5, color: '#2962FF', label: '5 SMA' },
     { id: 'sma10', type: 'SMA', period: 10, color: '#00BCD4', label: '10 SMA' },
     { id: 'sma20', type: 'SMA', period: 20, color: '#FF9800', label: '20 SMA' },
@@ -37,7 +29,17 @@ const AVAILABLE_INDICATORS = [
     { id: 'ema9', type: 'EMA', period: 9, color: '#9C27B0', label: '9 EMA' },
     { id: 'ema20', type: 'EMA', period: 20, color: '#3F51B5', label: '20 EMA' },
     { id: 'ema50', type: 'EMA', period: 50, color: '#E91E63', label: '50 EMA' },
-] as const
+]
+
+type MAChartProps = {
+    data: CandleData[]
+    title?: string
+    indicators?: Indicator[]
+    defaultActiveIndicators?: string[]
+}
+
+type Legend = (CandleData & Record<string, number>) | null;
+
 
 export const UnoTrick = <div un-bg='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91E63 #3F51B5 #9C27B0'
     un-text='#2962FF #00BCD4 #FF9800 #333333 #F44336 #E91E63 #3F51B5 #9C27B0' />
@@ -51,11 +53,11 @@ const formatVol = (val: number) => {
 }
 const getColor = (d: CandleData) => d.close >= d.open ? '#26a69a' : '#ef5350'
 
-export function MAChart({ data, title = 'SPX' }: MAChartProps) {
+export function MAChart({ data, title = 'SPX', indicators = DEFAULT_INDICATORS, defaultActiveIndicators }: MAChartProps) {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const seriesCache = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
     const [legend, setLegend] = useState<Legend>(null)
-    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(['sma20', 'sma50', 'ema20']))
+    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(defaultActiveIndicators || ['sma20', 'sma50', 'ema20']))
 
     const toggleIndicator = (id: string) => {
         setActiveToggles(prev => {
@@ -103,7 +105,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
 
         const closePrices = data.map(d => d.close)
 
-        AVAILABLE_INDICATORS.forEach(ind => {
+        indicators.forEach(ind => {
             let calculatedValues: number[] = []
             if (ind.type === 'SMA') {
                 calculatedValues = SMA.calculate({ period: ind.period, values: closePrices })
@@ -141,7 +143,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
                 param.seriesData.forEach((value, series) => {
                     const id = seriesIdMap.get(series)
                     if (id === 'candle') {
-                        nextLegend = { ...nextLegend, ...value } as Legend
+                        nextLegend = { ...nextLegend, ...value } as object as Legend
                     } else {
                         nextLegend = { ...nextLegend, [id]: (value as any).value } as Legend
                     }
@@ -161,7 +163,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
         });
 
         return () => chart.remove()
-    }, [data, title])
+    }, [data, title, indicators])
 
     useEffect(() => {
         seriesCache.current.forEach((series, id) => {
@@ -174,7 +176,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
     return (
         <div un-flex="~ col gap-4">
             <div un-flex="~ gap-2">
-                {AVAILABLE_INDICATORS.map((ind) => (
+                {indicators.map((ind) => (
                     <button
                         key={ind.id}
                         onClick={() => toggleIndicator(ind.id)}
@@ -224,7 +226,7 @@ export function MAChart({ data, title = 'SPX' }: MAChartProps) {
                                 {(legend.close - legend.open).toFixed(2)} ({((legend.close - legend.open) / legend.open * 100).toFixed(2)}%)
                             </span>
                         </div>
-                        {AVAILABLE_INDICATORS.map((ind) => {
+                        {indicators.map((ind) => {
                             if (!activeToggles.has(ind.id)) return null;
 
                             const val = (legend as any)[ind.id] as number | undefined

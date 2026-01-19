@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { MAChart } from '../components/MAChart';
-import { fromYahooData } from '../data/yahoo';
+import { fetchYahooData } from '../data/yahoo';
 
 const searchSchema = {
     symbol: (val: unknown) => typeof val === 'string' ? val : '^SPX',
@@ -24,10 +24,7 @@ export const Route = createFileRoute('/futures/ma')({
     loader: async ({ deps: { symbol, interval } }) => {
         const baseUrl = typeof window === 'undefined' ? 'http://localhost:3000' : '';
         const range = interval.endsWith('m') || interval.endsWith('h') ? '6mo' : '5y';
-        const response = await fetch(`${baseUrl}/api/yahoo/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
-
-        const json = await response.json();
-        const data = fromYahooData(json);
+        const data = await fetchYahooData(symbol, interval, range, baseUrl);
 
         return { data, symbol };
     }

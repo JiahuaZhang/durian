@@ -83,3 +83,12 @@ export function fromYahooData(json: YahooResponse): CandleData[] {
         .filter((item, index, self) => index === 0 || item.time !== self[index - 1].time);
 
 }
+
+export async function fetchYahooData(symbol: string, interval: string, range: string, baseUrl: string = '') {
+    const response = await fetch(`${baseUrl}/api/yahoo/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.statusText}`);
+    }
+    const json = await response.json();
+    return fromYahooData(json);
+}
