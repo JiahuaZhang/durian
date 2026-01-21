@@ -57,7 +57,7 @@ export function MAChart({ data, title = 'SPX', indicators = DEFAULT_INDICATORS, 
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const seriesCache = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
     const [legend, setLegend] = useState<Legend>(null)
-    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(defaultActiveIndicators || ['sma20', 'sma50', 'ema22']))
+    const [activeToggles, setActiveToggles] = useState<Set<string>>(new Set(defaultActiveIndicators || ['sma50', 'sma200',]))
 
     const toggleIndicator = (id: string) => {
         setActiveToggles(prev => {
