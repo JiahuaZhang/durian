@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MAChart } from '../components/MAChart'
+import { TradingViewWithIndicators } from '../components/TradingViewWithIndicators'
 import { fetchYahooData } from '../data/yahoo'
 
 export const Route = createFileRoute('/spx')({
@@ -16,7 +17,8 @@ export const Route = createFileRoute('/spx')({
 function RouteComponent() {
   const { data, symbol } = Route.useLoaderData()
   return (
-    <div un-p="4">
+    <div un-flex='~ col gap-8' >
+      <TradingViewWithIndicators symbol="SP500" />
       <MAChart data={data} title={symbol} />
     </div>
   )
