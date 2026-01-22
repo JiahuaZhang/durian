@@ -73,6 +73,7 @@ export function SymbolSearch({ initialValue = '' }: { initialValue?: string }) {
                     />
                     {value && (
                         <button
+                            type="button"
                             un-text="slate-400 hover:slate-600"
                             un-p="1"
                             un-cursor="pointer"
