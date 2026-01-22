@@ -17,6 +17,7 @@ import { Route as GexRouteImport } from './routes/gex'
 import { Route as FuturesRouteImport } from './routes/futures'
 import { Route as EconomicCalendarRouteImport } from './routes/economic-calendar'
 import { Route as CotRouteImport } from './routes/cot'
+import { Route as AnalysisRouteImport } from './routes/analysis'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuturesIndexRouteImport } from './routes/futures.index'
 import { Route as GexSymbolRouteImport } from './routes/gex.$symbol'
@@ -67,6 +68,11 @@ const CotRoute = CotRouteImport.update({
   path: '/cot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalysisRoute = AnalysisRouteImport.update({
+  id: '/analysis',
+  path: '/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -115,6 +121,7 @@ const CotGoldRoute = CotGoldRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/gex': typeof GexRouteWithChildren
@@ -153,6 +161,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analysis': typeof AnalysisRoute
   '/cot': typeof CotRouteWithChildren
   '/economic-calendar': typeof EconomicCalendarRoute
   '/futures': typeof FuturesRouteWithChildren
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/analysis'
     | '/cot'
     | '/economic-calendar'
     | '/futures'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analysis'
     | '/cot'
     | '/economic-calendar'
     | '/gex'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/analysis'
     | '/cot'
     | '/economic-calendar'
     | '/futures'
@@ -231,6 +243,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalysisRoute: typeof AnalysisRoute
   CotRoute: typeof CotRouteWithChildren
   EconomicCalendarRoute: typeof EconomicCalendarRoute
   FuturesRoute: typeof FuturesRouteWithChildren
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/cot'
       fullPath: '/cot'
       preLoaderRoute: typeof CotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/analysis': {
+      id: '/analysis'
+      path: '/analysis'
+      fullPath: '/analysis'
+      preLoaderRoute: typeof AnalysisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -407,6 +427,7 @@ const GexRouteWithChildren = GexRoute._addFileChildren(GexRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalysisRoute: AnalysisRoute,
   CotRoute: CotRouteWithChildren,
   EconomicCalendarRoute: EconomicCalendarRoute,
   FuturesRoute: FuturesRouteWithChildren,
