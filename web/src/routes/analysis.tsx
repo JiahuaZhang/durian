@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleAlert } from 'lucide-react'
-import { MAChart } from '../components/MAChart'
+import { AnalysisChart } from '../components/AnalysisChart'
 import { SymbolSearch } from '../components/SymbolSearch'
 import { fetchYahooData } from '../data/yahoo'
 
@@ -35,7 +35,7 @@ function RouteComponent() {
     return (
         <div un-flex="~ col gap-6" un-p="6">
             <SymbolSearch initialValue={symbol} />
-            <MAChart data={data} title={symbol} />
+            <AnalysisChart data={data} title={symbol} />
         </div>
     )
 }
