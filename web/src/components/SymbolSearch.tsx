@@ -107,6 +107,7 @@ export function SymbolSearch({ initialValue = '' }: { initialValue?: string }) {
                                 un-hover="bg-slate-50"
                                 un-flex="~ justify-between items-center"
                                 un-border-b="~ last:none slate-100"
+                                un-cursor="pointer"
                             >
                                 <span un-font="bold" un-text="slate-700">{item.symbol}</span>
                                 <span un-text="sm slate-400">{item.name}</span>

@@ -35,7 +35,7 @@ function RouteComponent() {
     return (
         <div un-flex="~ col gap-6" un-p="6">
             <SymbolSearch initialValue={symbol} />
-            <AnalysisChart data={data} title={symbol} />
+            <AnalysisChart data={data} />
         </div>
     )
 }
@@ -47,7 +47,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <div un-flex="~ col gap-4 items-center" un-my='16' >
             <header un-flex="~ items-center gap-2">
                 <CircleAlert un-text="red-500" />
-                <h2 un-text="xl slate-700" un-font="bold">Unable to load data</h2>
+                <h2 un-text="xl slate-700" un-font="bold">{error.message}</h2>
             </header>
 
             <p un-text="slate-500">
