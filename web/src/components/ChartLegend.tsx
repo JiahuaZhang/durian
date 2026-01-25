@@ -5,7 +5,8 @@ type ChartLegendProps = {
 }
 
 const formatPrice = (val: number) => val.toFixed(2)
-const formatVol = (val: number) => {
+const formatVol = (val?: number) => {
+    if (!val) return 'N/A'
     if (val >= 1e9) return (val / 1e9).toFixed(2) + 'B'
     if (val >= 1e6) return (val / 1e6).toFixed(2) + 'M'
     if (val >= 1e3) return (val / 1e3).toFixed(2) + 'K'

@@ -1,12 +1,10 @@
----
-trigger: always_on
----
 
 # User Preferences and Coding Rules
 
 ## General Principles
 1.  **Simplicity First**: Avoid over-engineering. Remove necessary state and keep React components lean.
 2.  **Stateless Logic**: If a helper function (formatting, utils, etc.) does not rely on component props or state, move it **outside** the component definition.
+3.  **Minimal Configuration**: Stick to library defaults whenever possible. Do not provide explicit configuration options (e.g., chart colors, grids, layouts) unless they differ significantly from the default or are strictly necessary for functionality. Avoid "boilerplate" config.
 
 ## React Patterns
 -   **State Management**: Minimize `useState`. Consolidate related data into single objects (e.g., `Legend` object) rather than multiple atomic states.
