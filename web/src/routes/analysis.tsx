@@ -33,7 +33,7 @@ export const Route = createFileRoute('/analysis')({
 function RouteComponent() {
     const { data, symbol } = Route.useLoaderData()
     return (
-        <div un-flex="~ col gap-6" un-p="6">
+        <div un-flex="~ col gap-2" un-p="6">
             <SymbolSearch initialValue={symbol} />
             <AnalysisChart data={data} />
         </div>

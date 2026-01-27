@@ -23,6 +23,7 @@ export function SymbolSearch({ initialValue = '' }: { initialValue?: string }) {
     const navigate = useNavigate()
     const [value, setValue] = useState(initialValue)
     const [showSuggestions, setShowSuggestions] = useState(false)
+    const [isTyping, setIsTyping] = useState(false)
     const wrapperRef = useRef<HTMLDivElement>(null)
 
     const handleSubmit = (e?: React.FormEvent, symbol: string = value) => {
@@ -34,13 +35,16 @@ export function SymbolSearch({ initialValue = '' }: { initialValue?: string }) {
             search: { symbol: symbol.toUpperCase() },
         })
         setShowSuggestions(false)
+        setIsTyping(false)
         setValue(symbol.toUpperCase())
     }
 
-    const filteredSymbols = POPULAR_SYMBOLS.filter(s =>
-        s.symbol.toLowerCase().includes(value.toLowerCase()) ||
-        s.name.toLowerCase().includes(value.toLowerCase())
-    )
+    const filteredSymbols = isTyping
+        ? POPULAR_SYMBOLS.filter(s =>
+            s.symbol.toLowerCase().includes(value.toLowerCase()) ||
+            s.name.toLowerCase().includes(value.toLowerCase())
+        )
+        : POPULAR_SYMBOLS
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -64,8 +68,12 @@ export function SymbolSearch({ initialValue = '' }: { initialValue?: string }) {
                         onChange={(e) => {
                             setValue(e.target.value)
                             setShowSuggestions(true)
+                            setIsTyping(true)
                         }}
-                        onFocus={() => setShowSuggestions(true)}
+                        onFocus={() => {
+                            setShowSuggestions(true)
+                            setIsTyping(false)
+                        }}
                         placeholder="Search symbol (e.g. AAPL, ^SPX)..."
                         un-outline="none"
                         un-w="full"
