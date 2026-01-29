@@ -272,14 +272,16 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
 
     return (
         <div un-flex="~ col gap-4">
-            <div un-flex="~ items-center gap-2" un-bg="slate-50" un-p="2" un-border="~ slate-200 rounded-lg">
-                <Settings2 size={16} />
-                <ToggleButton active={config.showVolume} onClick={() => setConfig(p => ({ ...p, showVolume: !p.showVolume }))}>
-                    Volume
-                </ToggleButton>
-                <ToggleButton active={config.showMACD} onClick={() => setConfig(p => ({ ...p, showMACD: !p.showMACD }))}>
-                    MACD
-                </ToggleButton>
+            <div un-flex="~">
+                <div un-flex="~ items-center gap-2" un-bg="slate-50" un-p="2 r-4" un-border="~ slate-200 rounded-lg">
+                    <Settings2 size={16} un-mr='2' />
+                    <ToggleButton active={config.showVolume} onClick={() => setConfig(p => ({ ...p, showVolume: !p.showVolume }))}>
+                        Volume
+                    </ToggleButton>
+                    <ToggleButton active={config.showMACD} onClick={() => setConfig(p => ({ ...p, showMACD: !p.showMACD }))}>
+                        MACD
+                    </ToggleButton>
+                </div>
             </div>
 
             <div
@@ -300,7 +302,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
                 un-shadow="sm"
                 un-position='relative'
             >
-                {macdLegend && (
+                {config.showMACD && macdLegend && (
                     <div un-position="absolute top-2 left-2 z-10" un-text="xs" un-flex="~ gap-3">
                         <span>MACD 12 26 9</span>
                         <span un-text="blue-600">{macdLegend.macd?.toFixed(2)}</span>
