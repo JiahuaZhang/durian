@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { findMACDCrosses, findMACDDivergences, MACDData } from '../utils/analysis';
 import { CandleData } from './AnalysisChart';
@@ -11,16 +11,38 @@ type TechnicalSignalsProps = {
 export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
     const [showAllCrosses, setShowAllCrosses] = useState(false)
     const [showAllDivergences, setShowAllDivergences] = useState(false)
+    const [filterZeroCross, setFilterZeroCross] = useState(false)
 
     const macdCrosses = useMemo(() => findMACDCrosses(macdData), [macdData])
     const macdDivergences = useMemo(() => findMACDDivergences(data, macdData), [data, macdData])
 
+    const filteredCrosses = useMemo(() => {
+        if (!filterZeroCross) return macdCrosses
+        return macdCrosses.filter(cross =>
+            (cross.type === 'golden' && cross.macdValue > 0) ||
+            (cross.type === 'dead' && cross.macdValue < 0)
+        )
+    }, [macdCrosses, filterZeroCross])
+
     return (
         <div un-min-w="xs" un-shrink="0" un-max-h="xl" un-border="~ slate-200 rounded-lg" un-bg="slate-50" un-p="3" un-flex="~ col gap-3" un-overflow="y-auto">
             <div un-flex='~ col gap-2'>
-                <div un-text="sm center">MACD Crosses</div>
+                <div un-flex="~ items-center justify-center gap-2">
+                    <div un-text="sm">MACD Crosses</div>
+                    <button
+                        onClick={() => setFilterZeroCross(p => !p)}
+                        un-p="1"
+                        un-border="~ rounded"
+                        un-bg={filterZeroCross ? 'blue-100' : 'transparent hover:slate-200'}
+                        un-text={filterZeroCross ? 'blue-600' : 'slate-400 hover:slate-600'}
+                        un-cursor="pointer"
+                        title="Filter: Golden > 0, Dead < 0"
+                    >
+                        <Filter size={14} />
+                    </button>
+                </div>
                 <div un-flex="~ col gap-1" un-max-h="3xs" un-overflow="y-auto" un-border="none" >
-                    {(showAllCrosses ? macdCrosses : macdCrosses.slice(0, 5)).map((cross, i) => (
+                    {(showAllCrosses ? filteredCrosses : filteredCrosses.slice(0, 5)).map((cross, i) => (
                         <div key={i} un-flex="~ items-center gap-2" un-text="xs" un-p="1.5" un-bg="white" un-border="rounded">
                             <span un-text={cross.type === 'golden' ? 'green-600' : 'red-600'} un-w="16">
                                 {cross.type === 'golden' ? '↗ Golden' : '↘ Dead'}
@@ -33,7 +55,7 @@ export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
                         </div>
                     ))}
                 </div>
-                {macdCrosses.length > 5 && (
+                {filteredCrosses.length > 5 && (
                     <button
                         onClick={() => setShowAllCrosses(p => !p)}
                         un-flex="~ items-center justify-center gap-1"
@@ -43,7 +65,7 @@ export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
                         {showAllCrosses ? (
                             <><ChevronUp size={14} /> Show less</>
                         ) : (
-                            <><ChevronDown size={14} /> Show all ({macdCrosses.length})</>
+                            <><ChevronDown size={14} /> Show all ({filteredCrosses.length})</>
                         )}
                     </button>
                 )}
