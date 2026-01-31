@@ -12,9 +12,10 @@ export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
     const [showAllCrosses, setShowAllCrosses] = useState(false)
     const [showAllDivergences, setShowAllDivergences] = useState(false)
     const [filterZeroCross, setFilterZeroCross] = useState(false)
+    const [divergenceWindow, setDivergenceWindow] = useState(20)
 
     const macdCrosses = useMemo(() => findMACDCrosses(macdData), [macdData])
-    const macdDivergences = useMemo(() => findMACDDivergences(data, macdData), [data, macdData])
+    const macdDivergences = useMemo(() => findMACDDivergences(data, macdData, divergenceWindow), [data, macdData, divergenceWindow])
 
     const filteredCrosses = useMemo(() => {
         if (!filterZeroCross) return macdCrosses
@@ -72,7 +73,23 @@ export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
             </div>
 
             <div un-border="t slate-200" un-pt="3" un-flex='~ col gap-2' >
-                <div un-text="sm center" >MACD Divergences</div>
+                <div un-flex="~ items-center justify-center gap-2">
+                    <div un-text="sm">MACD Divergences</div>
+                    <div un-flex="~ items-center gap-1" un-text="xs slate-500" title="Pivot window size (trading days)">
+                        <span>window:</span>
+                        <input
+                            type="number"
+                            value={divergenceWindow}
+                            onChange={e => setDivergenceWindow(Math.max(1, parseInt(e.target.value) ?? 1))}
+                            un-w="10"
+                            un-p="x-1 y-0.5"
+                            un-text="xs center"
+                            un-border="~ slate-300 rounded"
+                            un-bg="white"
+                            min={1}
+                        />
+                    </div>
+                </div>
                 <div un-max-h='3xs' un-overflow='y-auto' un-flex="~ col gap-1">
                     {(showAllDivergences ? macdDivergences : macdDivergences.slice(0, 5)).map((div, i) => (
                         <div key={i} un-flex="~ col gap-1" un-text="xs" un-p="1.5" un-bg="white" un-border="rounded">
