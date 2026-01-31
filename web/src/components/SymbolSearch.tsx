@@ -6,6 +6,8 @@ const POPULAR_SYMBOLS = [
     { symbol: '^SPX', name: 'S&P 500' },
     { symbol: '^NDX', name: 'Nasdaq 100' },
     { symbol: 'NVDA', name: 'NVIDIA' },
+    { symbol: 'USAR', name: 'USA Rare Earth' },
+    { symbol: 'SMR', name: 'Nuscale Power' },
     { symbol: 'AAPL', name: 'Apple' },
     { symbol: 'MSFT', name: 'Microsoft' },
     { symbol: 'GOOG', name: 'Alphabet' },
