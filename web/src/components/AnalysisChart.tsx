@@ -1,8 +1,11 @@
 import { CandlestickSeries, createChart, HistogramData, HistogramSeries, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
-import { Settings2 } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useChartConfig } from '../contexts/ChartConfigContext';
 import { calcMACD, MACDData } from '../utils/analysis';
+import { ChartConfigPopup } from './ChartConfigPopup';
 import { ChartLegend } from './ChartLegend';
+import { MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
 import { TechnicalSignals } from './TechnicalSignals';
 
 export type CandleData = {
@@ -19,7 +22,7 @@ type AnalysisChartProps = {
     data: CandleData[]
 }
 
-type ChartConfig = {
+type DisplayConfig = {
     showVolume: boolean;
     showMACD: boolean;
 }
@@ -52,12 +55,21 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
     }>({})
     const [chart, setChart] = useState<ReturnType<typeof createChart> | null>(null)
     const [macdChart, setMacdChart] = useState<ReturnType<typeof createChart> | null>(null)
-    const [config, setConfig] = useState<ChartConfig>({ showVolume: true, showMACD: false })
+    const [displayConfig, setDisplayConfig] = useState<DisplayConfig>({ showVolume: true, showMACD: false })
     const [legend, setLegend] = useState<CandleData | null>(null)
     const [macdLegend, setMacdLegend] = useState<MACDData | null>(null)
+    const [macdConfigOpen, setMacdConfigOpen] = useState(false)
+    const macdCogRef = useRef<HTMLButtonElement>(null)
     const syncingRef = useRef(false)
 
-    const macdData = useMemo(() => calcMACD(data), [data])
+    const { config: chartConfig } = useChartConfig()
+    const macdConfig = chartConfig.macd
+
+    const macdData = useMemo(() => calcMACD(data, {
+        fast: macdConfig.fastPeriod,
+        slow: macdConfig.slowPeriod,
+        signal: macdConfig.signalPeriod,
+    }), [data, macdConfig.fastPeriod, macdConfig.slowPeriod, macdConfig.signalPeriod])
 
     useEffect(() => {
         if (!chartContainerRef.current) return
@@ -100,11 +112,11 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
         histogramSeries.setData(macdData.filter(d => d.histogram !== undefined).map(d => ({
             time: d.time,
             value: d.histogram,
-            color: (d.histogram ?? 0) >= 0 ? '#26a69a' : '#ef5350'
+            color: (d.histogram ?? 0) >= 0 ? macdConfig.histogramUpColor : macdConfig.histogramDownColor
         })) as any)
 
         const macdLineSeries = newMacdChart.addSeries(LineSeries, {
-            color: '#2962FF',
+            color: macdConfig.macdColor,
             lineWidth: 1,
             priceLineVisible: false,
             lastValueVisible: false,
@@ -112,7 +124,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
         macdLineSeries.setData(macdData.map(d => ({ time: d.time, value: d.macd })) as any)
 
         const signalLineSeries = newMacdChart.addSeries(LineSeries, {
-            color: '#FF6D00',
+            color: macdConfig.signalColor,
             lineWidth: 1,
             priceLineVisible: false,
             lastValueVisible: false,
@@ -126,13 +138,13 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
             newMacdChart.remove()
             setMacdChart(null)
         }
-    }, [macdData])
+    }, [macdData, macdConfig.macdColor, macdConfig.signalColor, macdConfig.histogramUpColor, macdConfig.histogramDownColor])
 
     useEffect(() => {
         if (!macdChart) return
 
         macdChart.resize(macdContainerRef.current!.clientWidth, macdContainerRef.current!.clientHeight)
-    }, [macdChart, config.showMACD])
+    }, [macdChart, displayConfig.showMACD])
 
     useEffect(() => {
         if (!chart || !macdChart) return
@@ -200,7 +212,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
                 const mainData = param.seriesData.get(main) as any
 
                 let volumeVal = undefined
-                if (config.showVolume) {
+                if (displayConfig.showVolume) {
                     const vData = param.seriesData.get(volume) as HistogramData<Time> | undefined
                     volumeVal = vData?.value
                 }
@@ -222,7 +234,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
 
         chart.subscribeCrosshairMove(handleCrosshair)
         return () => chart.unsubscribeCrosshairMove(handleCrosshair)
-    }, [chart, config])
+    }, [chart, displayConfig])
 
     useEffect(() => {
         if (!macdChart) return
@@ -255,7 +267,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
         const { main, volume } = seriesRef.current
         if (!main || !volume) return
 
-        if (config.showVolume) {
+        if (displayConfig.showVolume) {
             chart.priceScale('right').applyOptions({
                 scaleMargins: { top: 0.1, bottom: 0.2 },
             })
@@ -269,17 +281,17 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
             })
             volume.applyOptions({ visible: false })
         }
-    }, [chart, config])
+    }, [chart, displayConfig])
 
     return (
         <div un-flex="~ col gap-4">
             <div un-flex="~">
                 <div un-flex="~ items-center gap-2" un-bg="slate-50" un-p="2 r-4" un-border="~ slate-200 rounded-lg">
-                    <Settings2 size={16} un-mr='2' />
-                    <ToggleButton active={config.showVolume} onClick={() => setConfig(p => ({ ...p, showVolume: !p.showVolume }))}>
+                    <Settings size={16} un-mr='2' />
+                    <ToggleButton active={displayConfig.showVolume} onClick={() => setDisplayConfig(p => ({ ...p, showVolume: !p.showVolume }))}>
                         Volume
                     </ToggleButton>
-                    <ToggleButton active={config.showMACD} onClick={() => setConfig(p => ({ ...p, showMACD: !p.showMACD }))}>
+                    <ToggleButton active={displayConfig.showMACD} onClick={() => setDisplayConfig(p => ({ ...p, showMACD: !p.showMACD }))}>
                         MACD
                     </ToggleButton>
                 </div>
@@ -302,17 +314,42 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
 
             <div
                 un-w="6xl"
-                un-h={config.showMACD ? '40' : '0'}
-                un-border={config.showMACD ? "~ slate-200" : "none"}
+                un-h={displayConfig.showMACD ? '40' : '0'}
+                un-border={displayConfig.showMACD ? "~ slate-200" : "none"}
                 un-shadow="sm"
                 un-position='relative'
             >
-                {config.showMACD && macdLegend && (
-                    <div un-position="absolute top-2 left-2 z-10" un-text="xs" un-flex="~ gap-3">
-                        <span>MACD 12 26 9</span>
-                        <span un-text="blue-600">{macdLegend.macd?.toFixed(2)}</span>
-                        <span un-text="orange-600">{macdLegend.signal?.toFixed(2)}</span>
-                        <span un-text={(macdLegend.histogram ?? 0) >= 0 ? 'green-600' : 'red-600'}>{macdLegend.histogram?.toFixed(2)}</span>
+                {displayConfig.showMACD && (
+                    <div un-position="absolute top-2 left-2 z-10" un-text="xs" un-flex="~ items-center gap-2">
+                        <button
+                            ref={macdCogRef}
+                            onClick={() => setMacdConfigOpen(p => !p)}
+                            un-p="1"
+                            un-cursor="pointer"
+                            un-text="slate-400 hover:slate-600"
+                            un-bg="transparent hover:slate-100"
+                            un-border="rounded"
+                        >
+                            <Settings size={14} />
+                        </button>
+                        <span>MACD {macdConfig.fastPeriod} {macdConfig.slowPeriod} {macdConfig.signalPeriod}</span>
+                        {macdLegend && (
+                            <>
+                                <span un-text="blue-600">{macdLegend.macd?.toFixed(2)}</span>
+                                <span un-text="orange-600">{macdLegend.signal?.toFixed(2)}</span>
+                                <span un-text={(macdLegend.histogram ?? 0) >= 0 ? 'green-600' : 'red-600'}>{macdLegend.histogram?.toFixed(2)}</span>
+                            </>
+                        )}
+                        <ChartConfigPopup
+                            title="MACD Settings"
+                            isOpen={macdConfigOpen}
+                            onClose={() => setMacdConfigOpen(false)}
+                            triggerRef={macdCogRef}
+                            tabs={[
+                                { id: 'input', label: 'Input', content: <MACDInputPanel /> },
+                                { id: 'style', label: 'Style', content: <MACDStylePanel /> },
+                            ]}
+                        />
                     </div>
                 )}
                 <div ref={macdContainerRef} un-h='full' />

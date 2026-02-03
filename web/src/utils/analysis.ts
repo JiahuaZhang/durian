@@ -33,12 +33,15 @@ export type MACDDivergence = {
     endMacd: number
 }
 
-export function calcMACD(data: CandleData[]): MACDData[] {
+export function calcMACD(
+    data: CandleData[],
+    config: { fast: number; slow: number; signal: number } = { fast: 12, slow: 26, signal: 9 }
+): MACDData[] {
     const result = MACD.calculate({
         values: data.map(d => d.close),
-        fastPeriod: 12,
-        slowPeriod: 26,
-        signalPeriod: 9,
+        fastPeriod: config.fast,
+        slowPeriod: config.slow,
+        signalPeriod: config.signal,
         SimpleMAOscillator: false,
         SimpleMASignal: false,
     })
