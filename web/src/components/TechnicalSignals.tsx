@@ -15,7 +15,7 @@ export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
     const [divergenceWindow, setDivergenceWindow] = useState(20)
 
     const macdCrosses = useMemo(() => findMACDCrosses(macdData), [macdData])
-    const macdDivergences = useMemo(() => findMACDDivergences(data, macdData, divergenceWindow), [data, macdData, divergenceWindow])
+    const macdDivergences = useMemo(() => findMACDDivergences(data, macdData, { pivotLookbackLeft: divergenceWindow }), [data, macdData, divergenceWindow])
 
     const filteredCrosses = useMemo(() => {
         if (!filterZeroCross) return macdCrosses

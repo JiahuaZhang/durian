@@ -9,6 +9,15 @@ export type MACDConfig = {
     signalColor: string;
     histogramUpColor: string;
     histogramDownColor: string;
+    // Divergence settings
+    showDivergences: boolean;
+    divergenceBullColor: string;
+    divergenceBearColor: string;
+    pivotLookbackLeft: number;
+    pivotLookbackRight: number;
+    rangeMin: number;
+    rangeMax: number;
+    dontTouchZero: boolean;
 };
 
 const defaultMACDConfig: MACDConfig = {
@@ -19,6 +28,14 @@ const defaultMACDConfig: MACDConfig = {
     signalColor: '#FF6D00',
     histogramUpColor: '#26a69a',
     histogramDownColor: '#ef5350',
+    showDivergences: true,
+    divergenceBullColor: '#26A69A',
+    divergenceBearColor: '#EF5350',
+    pivotLookbackLeft: 20,
+    pivotLookbackRight: 0,
+    rangeMin: 5,
+    rangeMax: 60,
+    dontTouchZero: true,
 };
 
 // All chart configurations

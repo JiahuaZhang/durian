@@ -25,12 +25,22 @@ export type Pivot = {
 
 export type MACDDivergence = {
     type: 'bullish' | 'bearish'
+    startIndex: number
+    endIndex: number
     startDate: string
     endDate: string
     startPrice: number
     endPrice: number
     startMacd: number
     endMacd: number
+}
+
+export type DivergenceConfig = {
+    pivotLookbackLeft: number
+    pivotLookbackRight: number
+    rangeMin: number
+    rangeMax: number
+    dontTouchZero: boolean
 }
 
 export function calcMACD(
@@ -84,10 +94,15 @@ export function findMACDCrosses(macdData: MACDData[]): MACDCross[] {
     return crosses.reverse()
 }
 
-function findPivots(data: CandleData[], macdData: MACDData[], window = 20): Pivot[] {
+function findPivots(
+    data: CandleData[],
+    macdData: MACDData[],
+    lookbackLeft: number,
+    lookbackRight: number
+): Pivot[] {
     const pivots: Pivot[] = []
 
-    for (let i = window; i < data.length - window; i++) {
+    for (let i = lookbackLeft; i < data.length - lookbackRight; i++) {
         const macd = macdData[i].macd
         if (macd === undefined) continue
 
@@ -97,9 +112,16 @@ function findPivots(data: CandleData[], macdData: MACDData[], window = 20): Pivo
         let isLow = true
         let isHigh = true
 
-        for (let j = 1; j <= window; j++) {
-            if (data[i - j].low <= lowPrice || data[i + j].low <= lowPrice) isLow = false
-            if (data[i - j].high >= highPrice || data[i + j].high >= highPrice) isHigh = false
+        // Check left side
+        for (let j = 1; j <= lookbackLeft; j++) {
+            if (data[i - j].low < lowPrice) isLow = false
+            if (data[i - j].high > highPrice) isHigh = false
+        }
+
+        // Check right side
+        for (let j = 1; j <= lookbackRight; j++) {
+            if (data[i + j].low < lowPrice) isLow = false
+            if (data[i + j].high > highPrice) isHigh = false
         }
 
         if (isLow) {
@@ -113,21 +135,69 @@ function findPivots(data: CandleData[], macdData: MACDData[], window = 20): Pivo
     return pivots
 }
 
-export function findMACDDivergences(data: CandleData[], macdData: MACDData[], window = 20): MACDDivergence[] {
-    const pivots = findPivots(data, macdData, window)
+const defaultDivergenceConfig: DivergenceConfig = {
+    pivotLookbackLeft: 5,
+    pivotLookbackRight: 5,
+    rangeMin: 5,
+    rangeMax: 60,
+    dontTouchZero: true,
+}
+
+export function findMACDDivergences(
+    data: CandleData[],
+    macdData: MACDData[],
+    config: Partial<DivergenceConfig> = {}
+): MACDDivergence[] {
+    const { pivotLookbackLeft, pivotLookbackRight, rangeMin, rangeMax, dontTouchZero } = {
+        ...defaultDivergenceConfig,
+        ...config,
+    }
+
+    const pivots = findPivots(data, macdData, pivotLookbackLeft, pivotLookbackRight)
     const divergences: MACDDivergence[] = []
 
     const lows = pivots.filter(p => p.type === 'low')
     const highs = pivots.filter(p => p.type === 'high')
 
-    // Bullish divergence: price lower low, MACD higher low
+    // Helper: check if MACD crosses zero between two indices
+    const crossesZero = (startIdx: number, endIdx: number): boolean => {
+        let hasPositive = false
+        let hasNegative = false
+        for (let i = startIdx; i <= endIdx; i++) {
+            const macd = macdData[i]?.macd
+            if (macd === undefined) continue
+            if (macd > 0) hasPositive = true
+            if (macd < 0) hasNegative = true
+        }
+        return hasPositive && hasNegative
+    }
+
+    // Helper: check if bars are within range
+    const inRange = (startIdx: number, endIdx: number): boolean => {
+        const bars = endIdx - startIdx
+        return bars >= rangeMin && bars <= rangeMax
+    }
+
+    // Bullish divergence: price lower low, MACD higher low (MACD below zero)
     for (let i = 1; i < lows.length; i++) {
         const prev = lows[i - 1]
         const curr = lows[i]
 
-        if (curr.price < prev.price && curr.macd > prev.macd) {
+        if (!inRange(prev.index, curr.index)) continue
+
+        // Price makes lower low
+        const priceLL = curr.price < prev.price
+        // MACD makes higher low
+        const oscHL = curr.macd > prev.macd && curr.macd < 0
+
+        // Don't touch zero check: MACD should stay below zero
+        const zeroCheck = dontTouchZero ? !crossesZero(prev.index, curr.index) : true
+
+        if (priceLL && oscHL && zeroCheck) {
             divergences.push({
                 type: 'bullish',
+                startIndex: prev.index,
+                endIndex: curr.index,
                 startDate: prev.date,
                 endDate: curr.date,
                 startPrice: prev.price,
@@ -138,14 +208,26 @@ export function findMACDDivergences(data: CandleData[], macdData: MACDData[], wi
         }
     }
 
-    // Bearish divergence: price higher high, MACD lower high
+    // Bearish divergence: price higher high, MACD lower high (MACD above zero)
     for (let i = 1; i < highs.length; i++) {
         const prev = highs[i - 1]
         const curr = highs[i]
 
-        if (curr.price > prev.price && curr.macd < prev.macd) {
+        if (!inRange(prev.index, curr.index)) continue
+
+        // Price makes higher high
+        const priceHH = curr.price > prev.price
+        // MACD makes lower high
+        const oscLH = curr.macd < prev.macd && curr.macd > 0
+
+        // Don't touch zero check: MACD should stay above zero
+        const zeroCheck = dontTouchZero ? !crossesZero(prev.index, curr.index) : true
+
+        if (priceHH && oscLH && zeroCheck) {
             divergences.push({
                 type: 'bearish',
+                startIndex: prev.index,
+                endIndex: curr.index,
                 startDate: prev.date,
                 endDate: curr.date,
                 startPrice: prev.price,

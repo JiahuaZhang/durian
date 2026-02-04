@@ -114,3 +114,93 @@ export function MACDStylePanel() {
         </div>
     );
 }
+
+type CheckboxInputProps = {
+    label: string;
+    checked: boolean;
+    onChange: (val: boolean) => void;
+};
+
+function CheckboxInput({ label, checked, onChange }: CheckboxInputProps) {
+    return (
+        <div un-flex="~ items-center justify-between" un-py="1">
+            <label un-text="sm slate-600">{label}</label>
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={e => onChange(e.target.checked)}
+                un-w="4"
+                un-h="4"
+                un-cursor="pointer"
+            />
+        </div>
+    );
+}
+
+export function MACDDivergencePanel() {
+    const { config, updateMACDConfig } = useChartConfig();
+    const {
+        showDivergences,
+        divergenceBullColor,
+        divergenceBearColor,
+        pivotLookbackLeft,
+        pivotLookbackRight,
+        rangeMin,
+        rangeMax,
+        dontTouchZero,
+    } = config.macd;
+
+    return (
+        <div un-flex="~ col gap-1" un-min-w="48">
+            <CheckboxInput
+                label="Show Divergences"
+                checked={showDivergences}
+                onChange={val => updateMACDConfig({ showDivergences: val })}
+            />
+            <CheckboxInput
+                label="Don't Touch Zero"
+                checked={dontTouchZero}
+                onChange={val => updateMACDConfig({ dontTouchZero: val })}
+            />
+            <NumberInput
+                label="Lookback Left"
+                value={pivotLookbackLeft}
+                onChange={val => updateMACDConfig({ pivotLookbackLeft: val })}
+                min={1}
+                max={20}
+            />
+            <NumberInput
+                label="Lookback Right"
+                value={pivotLookbackRight}
+                onChange={val => updateMACDConfig({ pivotLookbackRight: val })}
+                min={1}
+                max={20}
+            />
+            <NumberInput
+                label="Range Min"
+                value={rangeMin}
+                onChange={val => updateMACDConfig({ rangeMin: val })}
+                min={1}
+                max={100}
+            />
+            <NumberInput
+                label="Range Max"
+                value={rangeMax}
+                onChange={val => updateMACDConfig({ rangeMax: val })}
+                min={10}
+                max={200}
+            />
+            <ColorInput
+                label="Bull Color"
+                value={divergenceBullColor}
+                onChange={val => updateMACDConfig({ divergenceBullColor: val })}
+            />
+            <ColorInput
+                label="Bear Color"
+                value={divergenceBearColor}
+                onChange={val => updateMACDConfig({ divergenceBearColor: val })}
+            />
+        </div>
+    );
+}
+

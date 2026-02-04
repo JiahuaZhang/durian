@@ -1,11 +1,11 @@
-import { CandlestickSeries, createChart, HistogramData, HistogramSeries, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
+import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, HistogramSeries, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChartConfig } from '../contexts/ChartConfigContext';
-import { calcMACD, MACDData } from '../utils/analysis';
+import { calcMACD, findMACDDivergences, MACDData } from '../utils/analysis';
 import { ChartConfigPopup } from './ChartConfigPopup';
 import { ChartLegend } from './ChartLegend';
-import { MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
+import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
 import { TechnicalSignals } from './TechnicalSignals';
 
 export type CandleData = {
@@ -71,6 +71,18 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
         signal: macdConfig.signalPeriod,
     }), [data, macdConfig.fastPeriod, macdConfig.slowPeriod, macdConfig.signalPeriod])
 
+    const divergences = useMemo(() => {
+        if (!macdConfig.showDivergences) return []
+        return findMACDDivergences(data, macdData, {
+            pivotLookbackLeft: macdConfig.pivotLookbackLeft,
+            pivotLookbackRight: macdConfig.pivotLookbackRight,
+            rangeMin: macdConfig.rangeMin,
+            rangeMax: macdConfig.rangeMax,
+            dontTouchZero: macdConfig.dontTouchZero,
+        })
+    }, [data, macdData, macdConfig.showDivergences, macdConfig.pivotLookbackLeft,
+        macdConfig.pivotLookbackRight, macdConfig.rangeMin, macdConfig.rangeMax, macdConfig.dontTouchZero])
+
     useEffect(() => {
         if (!chartContainerRef.current) return
 
@@ -105,15 +117,27 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
 
         const newMacdChart = createChart(macdContainerRef.current)
 
+        // 4-color histogram: growing/falling for above/below zero
+        const histogramData = macdData.filter(d => d.histogram !== undefined).map((d, i, arr) => {
+            const hist = d.histogram ?? 0
+            const prevHist = i > 0 ? (arr[i - 1].histogram ?? 0) : 0
+            const isGrowing = hist > prevHist
+
+            let color: string
+            if (hist >= 0) {
+                color = isGrowing ? '#26A69A' : '#B2DFDB' // teal / light teal
+            } else {
+                color = isGrowing ? '#FFCDD2' : '#FF5252' // light red / red
+            }
+
+            return { time: d.time, value: hist, color }
+        })
+
         const histogramSeries = newMacdChart.addSeries(HistogramSeries, {
             priceLineVisible: false,
             lastValueVisible: false,
         })
-        histogramSeries.setData(macdData.filter(d => d.histogram !== undefined).map(d => ({
-            time: d.time,
-            value: d.histogram,
-            color: (d.histogram ?? 0) >= 0 ? macdConfig.histogramUpColor : macdConfig.histogramDownColor
-        })) as any)
+        histogramSeries.setData(histogramData as any)
 
         const macdLineSeries = newMacdChart.addSeries(LineSeries, {
             color: macdConfig.macdColor,
@@ -131,6 +155,50 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
         })
         signalLineSeries.setData(macdData.map(d => ({ time: d.time, value: d.signal })) as any)
 
+        // Add divergence lines and markers
+        if (macdConfig.showDivergences && divergences.length > 0) {
+            divergences.forEach(div => {
+                const color = div.type === 'bullish' ? macdConfig.divergenceBullColor : macdConfig.divergenceBearColor
+                const startTime = macdData[div.startIndex]?.time
+                const endTime = macdData[div.endIndex]?.time
+
+                if (startTime && endTime) {
+                    // Create a line series for this divergence
+                    const lineSeries = newMacdChart.addSeries(LineSeries, {
+                        color,
+                        lineWidth: 2,
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                    })
+                    lineSeries.setData([
+                        { time: startTime, value: div.startMacd },
+                        { time: endTime, value: div.endMacd },
+                    ] as any)
+                }
+            })
+
+            // Create markers for all divergences using createSeriesMarkers
+            const markers = divergences
+                .map(div => {
+                    const endTime = macdData[div.endIndex]?.time
+                    if (!endTime) return null
+                    return {
+                        time: endTime,
+                        position: div.type === 'bullish' ? 'belowBar' as const : 'aboveBar' as const,
+                        color: div.type === 'bullish' ? macdConfig.divergenceBullColor : macdConfig.divergenceBearColor,
+                        shape: div.type === 'bullish' ? 'arrowUp' as const : 'arrowDown' as const,
+                        text: div.type === 'bullish' ? 'Bull' : 'Bear',
+                    }
+                })
+                .filter((m): m is NonNullable<typeof m> => m !== null)
+                .sort((a, b) => String(a.time).localeCompare(String(b.time)))
+
+            if (markers.length > 0) {
+                createSeriesMarkers(macdLineSeries, markers as any)
+            }
+        }
+
         macdSeriesRef.current = { histogram: histogramSeries, macd: macdLineSeries, signal: signalLineSeries }
         setMacdChart(newMacdChart)
 
@@ -138,7 +206,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
             newMacdChart.remove()
             setMacdChart(null)
         }
-    }, [macdData, macdConfig.macdColor, macdConfig.signalColor, macdConfig.histogramUpColor, macdConfig.histogramDownColor])
+    }, [macdData, divergences, macdConfig.macdColor, macdConfig.signalColor, macdConfig.histogramUpColor, macdConfig.histogramDownColor, macdConfig.showDivergences, macdConfig.divergenceBullColor, macdConfig.divergenceBearColor])
 
     useEffect(() => {
         if (!macdChart) return
@@ -314,7 +382,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
 
             <div
                 un-w="6xl"
-                un-h={displayConfig.showMACD ? '40' : '0'}
+                un-h={displayConfig.showMACD ? '60' : '0'}
                 un-border={displayConfig.showMACD ? "~ slate-200" : "none"}
                 un-shadow="sm"
                 un-position='relative'
@@ -348,6 +416,7 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
                             tabs={[
                                 { id: 'input', label: 'Input', content: <MACDInputPanel /> },
                                 { id: 'style', label: 'Style', content: <MACDStylePanel /> },
+                                { id: 'divergence', label: 'Divergence', content: <MACDDivergencePanel /> },
                             ]}
                         />
                     </div>
