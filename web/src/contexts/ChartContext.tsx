@@ -274,16 +274,10 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
     }, []);
 
     const removeIndicator = useCallback((id: string) => {
-        setState(prev => {
-            const indicator = prev.indicators.find(i => i.id === id);
-            if (indicator?.chart) {
-                indicator.chart.remove();
-            }
-            return {
-                ...prev,
-                indicators: prev.indicators.filter(i => i.id !== id),
-            };
-        });
+        setState(prev => ({
+            ...prev,
+            indicators: prev.indicators.filter(i => i.id !== id),
+        }));
     }, []);
 
     const updateIndicator = useCallback((id: string, updates: Partial<SubIndicator>) => {
