@@ -1,4 +1,4 @@
-import { type CandleData } from "./AnalysisChart";
+import { type CandleData } from "@/contexts/ChartContext";
 
 type ChartLegendProps = {
     legend: CandleData | null;

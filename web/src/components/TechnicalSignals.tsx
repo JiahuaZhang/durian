@@ -1,18 +1,31 @@
+import { MACDConfig, useIndicators, useMainChart } from '@/contexts/ChartContext';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { findMACDCrosses, findMACDDivergences, MACDData } from '../utils/analysis';
-import { CandleData } from './AnalysisChart';
+import { calcMACD, findMACDCrosses, findMACDDivergences } from '../utils/analysis';
 
-type TechnicalSignalsProps = {
-    data: CandleData[];
-    macdData: MACDData[];
-}
-
-export function TechnicalSignals({ data, macdData }: TechnicalSignalsProps) {
+export function TechnicalSignals() {
     const [showAllCrosses, setShowAllCrosses] = useState(false)
     const [showAllDivergences, setShowAllDivergences] = useState(false)
     const [filterZeroCross, setFilterZeroCross] = useState(false)
     const [divergenceWindow, setDivergenceWindow] = useState(20)
+
+    // Get data from context
+    const { data } = useMainChart()
+    const { indicators } = useIndicators()
+
+    // Get first MACD indicator config if exists
+    const macdIndicator = indicators.find(i => i.type === 'macd')
+    const macdConfig = macdIndicator?.config as MACDConfig | undefined
+
+    // Calculate MACD data
+    const macdData = useMemo(() => {
+        if (data.length === 0) return []
+        return calcMACD(data, {
+            fast: macdConfig?.fastPeriod ?? 12,
+            slow: macdConfig?.slowPeriod ?? 26,
+            signal: macdConfig?.signalPeriod ?? 9,
+        })
+    }, [data, macdConfig?.fastPeriod, macdConfig?.slowPeriod, macdConfig?.signalPeriod])
 
     const macdCrosses = useMemo(() => findMACDCrosses(macdData), [macdData])
     const macdDivergences = useMemo(() => findMACDDivergences(data, macdData, { pivotLookbackLeft: divergenceWindow }), [data, macdData, divergenceWindow])

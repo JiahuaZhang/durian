@@ -1,4 +1,4 @@
-import { useChartConfig } from '../contexts/ChartConfigContext';
+import { MACDConfig, useIndicators } from '../contexts/ChartContext';
 
 type NumberInputProps = {
     label: string;
@@ -54,30 +54,51 @@ function ColorInput({ label, value, onChange }: ColorInputProps) {
     );
 }
 
-export function MACDInputPanel() {
-    const { config, updateMACDConfig } = useChartConfig();
-    const { fastPeriod, slowPeriod, signalPeriod } = config.macd;
+// Helper hook to get a specific MACD indicator's config by id
+function useMACDIndicatorConfig(id: string) {
+    const { indicators, updateIndicatorConfig } = useIndicators();
+    const macdIndicator = indicators.find(i => i.id === id);
+
+    const config = macdIndicator?.config as MACDConfig | undefined;
+
+    const updateConfig = (updates: Partial<MACDConfig>) => {
+        updateIndicatorConfig(id, updates);
+    };
+
+    return { config, updateConfig };
+}
+
+type MACDPanelProps = {
+    id: string;
+};
+
+export function MACDInputPanel({ id }: MACDPanelProps) {
+    const { config, updateConfig } = useMACDIndicatorConfig(id);
+
+    if (!config) return <div un-text="sm slate-400">No MACD indicator active</div>;
+
+    const { fastPeriod, slowPeriod, signalPeriod } = config;
 
     return (
         <div un-flex="~ col gap-1" un-min-w="48">
             <NumberInput
                 label="Fast Period"
                 value={fastPeriod}
-                onChange={val => updateMACDConfig({ fastPeriod: val })}
+                onChange={val => updateConfig({ fastPeriod: val })}
                 min={2}
                 max={50}
             />
             <NumberInput
                 label="Slow Period"
                 value={slowPeriod}
-                onChange={val => updateMACDConfig({ slowPeriod: val })}
+                onChange={val => updateConfig({ slowPeriod: val })}
                 min={2}
                 max={100}
             />
             <NumberInput
                 label="Signal Period"
                 value={signalPeriod}
-                onChange={val => updateMACDConfig({ signalPeriod: val })}
+                onChange={val => updateConfig({ signalPeriod: val })}
                 min={2}
                 max={50}
             />
@@ -85,31 +106,34 @@ export function MACDInputPanel() {
     );
 }
 
-export function MACDStylePanel() {
-    const { config, updateMACDConfig } = useChartConfig();
-    const { macdColor, signalColor, histogramUpColor, histogramDownColor } = config.macd;
+export function MACDStylePanel({ id }: MACDPanelProps) {
+    const { config, updateConfig } = useMACDIndicatorConfig(id);
+
+    if (!config) return <div un-text="sm slate-400">No MACD indicator active</div>;
+
+    const { macdColor, signalColor, histogramUpColor, histogramDownColor } = config;
 
     return (
         <div un-flex="~ col gap-1" un-min-w="48">
             <ColorInput
                 label="MACD Line"
                 value={macdColor}
-                onChange={val => updateMACDConfig({ macdColor: val })}
+                onChange={val => updateConfig({ macdColor: val })}
             />
             <ColorInput
                 label="Signal Line"
                 value={signalColor}
-                onChange={val => updateMACDConfig({ signalColor: val })}
+                onChange={val => updateConfig({ signalColor: val })}
             />
             <ColorInput
                 label="Histogram Up"
                 value={histogramUpColor}
-                onChange={val => updateMACDConfig({ histogramUpColor: val })}
+                onChange={val => updateConfig({ histogramUpColor: val })}
             />
             <ColorInput
                 label="Histogram Down"
                 value={histogramDownColor}
-                onChange={val => updateMACDConfig({ histogramDownColor: val })}
+                onChange={val => updateConfig({ histogramDownColor: val })}
             />
         </div>
     );
@@ -137,8 +161,11 @@ function CheckboxInput({ label, checked, onChange }: CheckboxInputProps) {
     );
 }
 
-export function MACDDivergencePanel() {
-    const { config, updateMACDConfig } = useChartConfig();
+export function MACDDivergencePanel({ id }: MACDPanelProps) {
+    const { config, updateConfig } = useMACDIndicatorConfig(id);
+
+    if (!config) return <div un-text="sm slate-400">No MACD indicator active</div>;
+
     const {
         showDivergences,
         divergenceBullColor,
@@ -148,59 +175,58 @@ export function MACDDivergencePanel() {
         rangeMin,
         rangeMax,
         dontTouchZero,
-    } = config.macd;
+    } = config;
 
     return (
         <div un-flex="~ col gap-1" un-min-w="48">
             <CheckboxInput
                 label="Show Divergences"
                 checked={showDivergences}
-                onChange={val => updateMACDConfig({ showDivergences: val })}
+                onChange={val => updateConfig({ showDivergences: val })}
             />
             <CheckboxInput
                 label="Don't Touch Zero"
                 checked={dontTouchZero}
-                onChange={val => updateMACDConfig({ dontTouchZero: val })}
+                onChange={val => updateConfig({ dontTouchZero: val })}
             />
             <NumberInput
                 label="Lookback Left"
                 value={pivotLookbackLeft}
-                onChange={val => updateMACDConfig({ pivotLookbackLeft: val })}
+                onChange={val => updateConfig({ pivotLookbackLeft: val })}
                 min={1}
                 max={20}
             />
             <NumberInput
                 label="Lookback Right"
                 value={pivotLookbackRight}
-                onChange={val => updateMACDConfig({ pivotLookbackRight: val })}
+                onChange={val => updateConfig({ pivotLookbackRight: val })}
                 min={1}
                 max={20}
             />
             <NumberInput
                 label="Range Min"
                 value={rangeMin}
-                onChange={val => updateMACDConfig({ rangeMin: val })}
+                onChange={val => updateConfig({ rangeMin: val })}
                 min={1}
                 max={100}
             />
             <NumberInput
                 label="Range Max"
                 value={rangeMax}
-                onChange={val => updateMACDConfig({ rangeMax: val })}
+                onChange={val => updateConfig({ rangeMax: val })}
                 min={10}
                 max={200}
             />
             <ColorInput
                 label="Bull Color"
                 value={divergenceBullColor}
-                onChange={val => updateMACDConfig({ divergenceBullColor: val })}
+                onChange={val => updateConfig({ divergenceBullColor: val })}
             />
             <ColorInput
                 label="Bear Color"
                 value={divergenceBearColor}
-                onChange={val => updateMACDConfig({ divergenceBearColor: val })}
+                onChange={val => updateConfig({ divergenceBearColor: val })}
             />
         </div>
     );
 }
-
