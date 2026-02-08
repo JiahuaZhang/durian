@@ -102,7 +102,6 @@ export type MainChartState = {
     chart: ReturnType<typeof createChart> | null;
     series: {
         candle?: ISeriesApi<"Candlestick">;
-        volume?: ISeriesApi<"Histogram">;
     };
     legend: MainLegend | null;
 };
