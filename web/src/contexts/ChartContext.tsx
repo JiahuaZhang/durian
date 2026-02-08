@@ -157,6 +157,7 @@ type ChartContextType = {
     addOverlay: (type: OverlayType) => string;
     removeOverlay: (id: string) => void;
     updateOverlay: (id: string, updates: Partial<OverlayIndicator>) => void;
+    updateOverlayConfig: <T extends VolumeConfig | SMAConfig | EMAConfig>(id: string, configUpdates: Partial<T>) => void;
     toggleOverlay: (id: string) => void;
     getOverlay: (id: string) => OverlayIndicator | undefined;
     setOverlayLegend: (id: string, legend: OverlayLegend | undefined) => void;
@@ -284,6 +285,15 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
         }));
     }, []);
 
+    const updateOverlayConfig = useCallback(<T extends VolumeConfig | SMAConfig | EMAConfig>(id: string, configUpdates: Partial<T>) => {
+        setState(prev => ({
+            ...prev,
+            overlays: prev.overlays.map(o =>
+                o.id === id ? { ...o, config: { ...o.config, ...configUpdates } } : o
+            ),
+        }));
+    }, []);
+
     // Indicator actions
     const addIndicator = useCallback((type: IndicatorType): string => {
         const id = generateId(type);
@@ -352,6 +362,7 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
             toggleOverlay,
             getOverlay,
             setOverlayLegend,
+            updateOverlayConfig,
             addIndicator,
             removeIndicator,
             updateIndicator,
@@ -380,8 +391,8 @@ export function useMainChart() {
 }
 
 export function useOverlays() {
-    const { state, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay, setOverlayLegend } = useChartContext();
-    return { overlays: state.overlays, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay, setOverlayLegend };
+    const { state, addOverlay, removeOverlay, updateOverlay, updateOverlayConfig, toggleOverlay, getOverlay, setOverlayLegend } = useChartContext();
+    return { overlays: state.overlays, addOverlay, removeOverlay, updateOverlay, updateOverlayConfig, toggleOverlay, getOverlay, setOverlayLegend };
 }
 
 export function useIndicators() {

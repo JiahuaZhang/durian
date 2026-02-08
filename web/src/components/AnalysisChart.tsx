@@ -88,6 +88,23 @@ function AnalysisChartInner() {
         })
     }, [chart, data, overlays, updateOverlay])
 
+    // Update volume series when config changes (e.g., colors)
+    useEffect(() => {
+        if (!chart || !data.length) return
+
+        overlays.forEach(overlay => {
+            if (overlay.type === 'volume' && overlay.series) {
+                const config = overlay.config as VolumeConfig
+                // Re-set data with updated colors
+                overlay.series.setData(data.map(d => ({
+                    time: d.time,
+                    value: d.volume,
+                    color: d.close >= d.open ? config.upColor : config.downColor
+                })) as any)
+            }
+        })
+    }, [chart, data, overlays])
+
     // Handle crosshair for legend
     useEffect(() => {
         if (!chart || !series.candle) return

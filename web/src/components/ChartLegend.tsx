@@ -1,6 +1,7 @@
-import { type MainLegend, type OverlayIndicator, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
-import { Eye, EyeOff, X } from "lucide-react";
-import { useState } from "react";
+import { type MainLegend, type OverlayIndicator, type VolumeConfig, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
+import { Eye, EyeOff, Settings, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChartConfigPopup } from "./ChartConfigPopup";
 
 const formatPrice = (val: number) => val.toFixed(2)
 const formatVol = (val: number) => {
@@ -21,16 +22,33 @@ const getOverlayLabel = (overlay: OverlayIndicator) => {
     }
 }
 
-type OverlayLegendItemProps = {
-    overlay: OverlayIndicator;
-    value?: number;
-    color: string;
-    onToggle?: (id: string) => void;
-    onRemove?: (id: string) => void;
+// Get formatted value for overlay based on type
+const getOverlayValue = (overlay: OverlayIndicator): number | undefined => {
+    if (!overlay.legend) return undefined;
+    
+    switch (overlay.type) {
+        case 'volume':
+            return (overlay.legend as VolumeLegend).volume;
+        // Future: add SMA, EMA value extraction here
+        default:
+            return undefined;
+    }
 }
 
-function OverlayLegendItem({ overlay, value, color, onToggle, onRemove }: OverlayLegendItemProps) {
+type OverlayLegendItemProps = {
+    overlay: OverlayIndicator;
+    color: string;
+}
+
+function OverlayLegendItem({ overlay, color }: OverlayLegendItemProps) {
     const [isHovered, setIsHovered] = useState(false);
+    const [configOpen, setConfigOpen] = useState(false);
+    const cogRef = useRef<HTMLButtonElement>(null);
+    
+    // Use context directly - no prop drilling
+    const { toggleOverlay, removeOverlay, updateOverlayConfig } = useOverlays();
+    
+    const value = getOverlayValue(overlay);
 
     return (
         <div 
@@ -46,7 +64,18 @@ function OverlayLegendItem({ overlay, value, color, onToggle, onRemove }: Overla
             {isHovered && (
                 <>
                     <button
-                        onClick={() => onToggle?.(overlay.id)}
+                        ref={cogRef}
+                        onClick={() => setConfigOpen(p => !p)}
+                        un-cursor="pointer"
+                        un-p="0.5"
+                        un-hover:bg="slate-100"
+                        un-border="rounded"
+                        un-text="slate-400 hover:slate-600"
+                    >
+                        <Settings size={12} />
+                    </button>
+                    <button
+                        onClick={() => toggleOverlay(overlay.id)}
                         un-cursor="pointer"
                         un-p="0.5"
                         un-hover:bg="slate-100"
@@ -56,7 +85,7 @@ function OverlayLegendItem({ overlay, value, color, onToggle, onRemove }: Overla
                         {overlay.visible ? <Eye size={12} /> : <EyeOff size={12} />}
                     </button>
                     <button
-                        onClick={() => onRemove?.(overlay.id)}
+                        onClick={() => removeOverlay(overlay.id)}
                         un-cursor="pointer"
                         un-p="0.5"
                         un-hover:bg="red-100"
@@ -67,13 +96,72 @@ function OverlayLegendItem({ overlay, value, color, onToggle, onRemove }: Overla
                     </button>
                 </>
             )}
+            
+            {/* Config popup based on overlay type */}
+            {overlay.type === 'volume' && (
+                <ChartConfigPopup
+                    title="Volume Settings"
+                    isOpen={configOpen}
+                    onClose={() => setConfigOpen(false)}
+                    triggerRef={cogRef}
+                    tabs={[
+                        {
+                            id: 'style',
+                            label: 'Style',
+                            content: (
+                                <VolumeStylePanel
+                                    config={overlay.config as VolumeConfig}
+                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
+                                />
+                            )
+                        }
+                    ]}
+                />
+            )}
+        </div>
+    )
+}
+
+// Volume config panel
+type VolumeStylePanelProps = {
+    config: VolumeConfig;
+    onUpdate: (updates: Partial<VolumeConfig>) => void;
+}
+
+function VolumeStylePanel({ config, onUpdate }: VolumeStylePanelProps) {
+    return (
+        <div un-flex="~ col gap-3">
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Up Color</label>
+                <input
+                    type="color"
+                    value={config.upColor}
+                    onChange={(e) => onUpdate({ upColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Down Color</label>
+                <input
+                    type="color"
+                    value={config.downColor}
+                    onChange={(e) => onUpdate({ downColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
         </div>
     )
 }
 
 export function ChartLegend() {
     const { legend } = useMainChart();
-    const { overlays, toggleOverlay, removeOverlay } = useOverlays();
+    const { overlays } = useOverlays();
     
     if (!legend && overlays.length === 0) return null;
 
@@ -136,10 +224,7 @@ export function ChartLegend() {
                             <OverlayLegendItem
                                 key={overlay.id}
                                 overlay={overlay}
-                                value={overlay.type === 'volume' && overlay.legend ? (overlay.legend as VolumeLegend).volume : undefined}
                                 color={color}
-                                onToggle={toggleOverlay}
-                                onRemove={removeOverlay}
                             />
                         ))}
                     </div>
