@@ -1,10 +1,6 @@
-import { type CandleData, type OverlayIndicator, useOverlays } from "@/contexts/ChartContext";
+import { type MainLegend, type OverlayIndicator, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useState } from "react";
-
-type ChartLegendProps = {
-    legend: CandleData | null;
-}
 
 const formatPrice = (val: number) => val.toFixed(2)
 const formatVol = (val: number) => {
@@ -13,7 +9,7 @@ const formatVol = (val: number) => {
     if (val >= 1e3) return (val / 1e3).toFixed(2) + 'K'
     return val.toString()
 }
-const getColor = (d: CandleData) => d.close >= d.open ? '#26a69a' : '#ef5350'
+const getColor = (d: MainLegend) => d.close >= d.open ? '#26a69a' : '#ef5350'
 export const UnoTrick = <div un-text="#26a69a #ef5350" />
 
 const getOverlayLabel = (overlay: OverlayIndicator) => {
@@ -75,7 +71,8 @@ function OverlayLegendItem({ overlay, value, color, onToggle, onRemove }: Overla
     )
 }
 
-export function ChartLegend({ legend }: ChartLegendProps) {
+export function ChartLegend() {
+    const { legend } = useMainChart();
     const { overlays, toggleOverlay, removeOverlay } = useOverlays();
     
     if (!legend && overlays.length === 0) return null;
@@ -139,7 +136,7 @@ export function ChartLegend({ legend }: ChartLegendProps) {
                             <OverlayLegendItem
                                 key={overlay.id}
                                 overlay={overlay}
-                                value={overlay.type === 'volume' && legend ? legend.volume : undefined}
+                                value={overlay.type === 'volume' && overlay.legend ? (overlay.legend as VolumeLegend).volume : undefined}
                                 color={color}
                                 onToggle={toggleOverlay}
                                 onRemove={removeOverlay}

@@ -1,6 +1,6 @@
-import { CandlestickSeries, createChart, HistogramData, HistogramSeries, ISeriesApi, Time } from 'lightweight-charts';
+import { CandlestickSeries, createChart, HistogramData, HistogramSeries, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { CandleData, ChartProvider, useIndicators, useMainChart, useOverlays } from '../contexts/ChartContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
 import { ChartLegend } from './ChartLegend';
@@ -26,16 +26,8 @@ const AddButton = ({ onClick, children }: { onClick: () => void, children: React
 
 function AnalysisChartInner() {
     const chartContainerRef = useRef<HTMLDivElement>(null)
-    const seriesRef = useRef<{
-        main?: ISeriesApi<"Candlestick">,
-        volume?: ISeriesApi<"Histogram">
-    }>({})
-    const [chart, setChart] = useState<ReturnType<typeof createChart> | null>(null)
-    const [legend, setLegend] = useState<CandleData | null>(null)
-
-    // Get data from context
-    const { data, setMainChart, setMainSeries } = useMainChart()
-    const { overlays, addOverlay } = useOverlays()
+    const { data, chart, series, setMainChart, setMainSeries, setMainLegend } = useMainChart()
+    const { overlays, addOverlay, setOverlayLegend } = useOverlays()
     const { addIndicator } = useIndicators()
 
     // Check if any volume overlay is visible (for chart margin calculations)
@@ -62,16 +54,12 @@ function AnalysisChartInner() {
             color: d.close >= d.open ? '#26a69a' : '#ef5350'
         })) as any)
 
-        seriesRef.current = { main: mainSeries, volume: volumeSeries }
-        setChart(newChart)
-
         // Register with context
         setMainChart(newChart)
         setMainSeries({ candle: mainSeries, volume: volumeSeries })
 
         return () => {
             newChart.remove()
-            setChart(null)
             setMainChart(null)
         }
     }, [data, setMainChart, setMainSeries])
@@ -80,39 +68,51 @@ function AnalysisChartInner() {
     useEffect(() => {
         if (!chart) return
 
-        const { main, volume } = seriesRef.current
+        const { candle: main, volume } = series
         if (!main || !volume) return
 
+        // Find the volume overlay to update its legend
+        const volumeOverlay = overlays.find(o => o.type === 'volume')
+
         const handleCrosshair = (param: any) => {
-            if (param.time) {
-                const mainData = param.seriesData.get(main) as any
-
-                const vData = param.seriesData.get(volume) as HistogramData<Time> | undefined
-                const volumeVal = vData?.value
-
-                setLegend({
-                    ...mainData,
-                    volume: volumeVal,
-                })
-            } else {
-                setLegend(null)
-            }
-
             const isHovering = param.point !== undefined && param.time !== undefined &&
                 param.point.x >= 0 && param.point.x < chartContainerRef.current!.clientWidth &&
                 param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight
 
-            if (!isHovering) setLegend(null)
+            if (param.time && isHovering) {
+                const mainData = param.seriesData.get(main) as any
+                if (mainData) {
+                    setMainLegend({
+                        open: mainData.open,
+                        high: mainData.high,
+                        low: mainData.low,
+                        close: mainData.close,
+                    })
+                }
+
+                // Update volume overlay legend
+                if (volumeOverlay) {
+                    const vData = param.seriesData.get(volume) as HistogramData<Time> | undefined
+                    if (vData?.value !== undefined) {
+                        setOverlayLegend(volumeOverlay.id, { volume: vData.value })
+                    }
+                }
+            } else {
+                setMainLegend(null)
+                if (volumeOverlay) {
+                    setOverlayLegend(volumeOverlay.id, undefined)
+                }
+            }
         }
 
         chart.subscribeCrosshairMove(handleCrosshair)
         return () => chart.unsubscribeCrosshairMove(handleCrosshair)
-    }, [chart, showVolume])
+    }, [chart, showVolume, overlays, setMainLegend, setOverlayLegend])
 
     // Volume visibility
     useEffect(() => {
         if (!chart) return
-        const { main, volume } = seriesRef.current
+        const { candle: main, volume } = series
         if (!main || !volume) return
 
         if (showVolume) {
@@ -153,7 +153,7 @@ function AnalysisChartInner() {
                     un-shadow="sm"
                     un-position='relative'
                 >
-                    <ChartLegend legend={legend} />
+                    <ChartLegend />
                     <div ref={chartContainerRef} un-h='full' />
                 </div>
 

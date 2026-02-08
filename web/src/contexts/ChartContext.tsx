@@ -35,12 +35,19 @@ export type EMAConfig = {
     lineWidth: number;
 };
 
+export type VolumeLegend = {
+    volume: number;
+};
+
+export type OverlayLegend = VolumeLegend; // Union type for future overlay legends
+
 export type OverlayIndicator = {
     id: string;
     type: OverlayType;
     visible: boolean;
     config: VolumeConfig | SMAConfig | EMAConfig;
     series?: ISeriesApi<any>;
+    legend?: OverlayLegend;
 };
 
 // Indicator types (sub-charts below main)
@@ -81,6 +88,14 @@ export type SubIndicator = {
     legend?: any;
 };
 
+// Main chart legend for crosshair hover data
+export type MainLegend = {
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+};
+
 // Main chart state
 export type MainChartState = {
     data: CandleData[];
@@ -89,6 +104,7 @@ export type MainChartState = {
         candle?: ISeriesApi<"Candlestick">;
         volume?: ISeriesApi<"Histogram">;
     };
+    legend: MainLegend | null;
 };
 
 // Full chart state
@@ -136,6 +152,7 @@ type ChartContextType = {
     setMainChart: (chart: ReturnType<typeof createChart> | null) => void;
     setMainData: (data: CandleData[]) => void;
     setMainSeries: (series: Partial<MainChartState['series']>) => void;
+    setMainLegend: (legend: MainLegend | null) => void;
 
     // Overlays
     addOverlay: (type: OverlayType) => string;
@@ -143,6 +160,7 @@ type ChartContextType = {
     updateOverlay: (id: string, updates: Partial<OverlayIndicator>) => void;
     toggleOverlay: (id: string) => void;
     getOverlay: (id: string) => OverlayIndicator | undefined;
+    setOverlayLegend: (id: string, legend: OverlayLegend | undefined) => void;
 
     // Indicators
     addIndicator: (type: IndicatorType) => string;
@@ -172,6 +190,7 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
             data: initialData,
             chart: null,
             series: {},
+            legend: null,
         },
         overlays: [
             // Default volume overlay
@@ -200,6 +219,13 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
         setState(prev => ({
             ...prev,
             main: { ...prev.main, series: { ...prev.main.series, ...series } },
+        }));
+    }, []);
+
+    const setMainLegend = useCallback((legend: MainLegend | null) => {
+        setState(prev => ({
+            ...prev,
+            main: { ...prev.main, legend },
         }));
     }, []);
 
@@ -251,6 +277,13 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
     const getOverlay = useCallback((id: string) => {
         return state.overlays.find(o => o.id === id);
     }, [state.overlays]);
+
+    const setOverlayLegend = useCallback((id: string, legend: OverlayLegend | undefined) => {
+        setState(prev => ({
+            ...prev,
+            overlays: prev.overlays.map(o => o.id === id ? { ...o, legend } : o),
+        }));
+    }, []);
 
     // Indicator actions
     const addIndicator = useCallback((type: IndicatorType): string => {
@@ -313,11 +346,13 @@ export function ChartProvider({ children, initialData = [] }: ChartProviderProps
             setMainChart,
             setMainData,
             setMainSeries,
+            setMainLegend,
             addOverlay,
             removeOverlay,
             updateOverlay,
             toggleOverlay,
             getOverlay,
+            setOverlayLegend,
             addIndicator,
             removeIndicator,
             updateIndicator,
@@ -341,13 +376,13 @@ export function useChartContext() {
 
 // Helper hooks for specific data
 export function useMainChart() {
-    const { state, setMainChart, setMainData, setMainSeries } = useChartContext();
-    return { ...state.main, setMainChart, setMainData, setMainSeries };
+    const { state, setMainChart, setMainData, setMainSeries, setMainLegend } = useChartContext();
+    return { ...state.main, setMainChart, setMainData, setMainSeries, setMainLegend };
 }
 
 export function useOverlays() {
-    const { state, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay } = useChartContext();
-    return { overlays: state.overlays, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay };
+    const { state, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay, setOverlayLegend } = useChartContext();
+    return { overlays: state.overlays, addOverlay, removeOverlay, updateOverlay, toggleOverlay, getOverlay, setOverlayLegend };
 }
 
 export function useIndicators() {
