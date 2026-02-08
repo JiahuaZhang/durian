@@ -10,12 +10,12 @@ type AnalysisChartProps = {
     data: CandleData[]
 }
 
-const ToggleButton = ({ active, onClick, children }: { active: boolean, onClick: () => void, children: React.ReactNode }) => (
+const AddButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
     <button
         onClick={onClick}
         un-p="x-3 y-1"
-        un-text={`xs ${active ? 'white' : 'slate-600'}`}
-        un-bg={active ? 'blue-600' : 'white hover:slate-100'}
+        un-text="xs slate-600"
+        un-bg="white hover:slate-100"
         un-border="~ slate-200 rounded-md"
         un-shadow="sm"
         un-cursor="pointer"
@@ -35,12 +35,11 @@ function AnalysisChartInner() {
 
     // Get data from context
     const { data, setMainChart, setMainSeries } = useMainChart()
-    const { overlays, toggleOverlay } = useOverlays()
+    const { overlays, addOverlay } = useOverlays()
     const { addIndicator } = useIndicators()
 
-    // Find default volume overlay
-    const volumeOverlay = overlays.find(o => o.id === 'volume-default')
-    const showVolume = volumeOverlay?.visible ?? true
+    // Check if any volume overlay is visible (for chart margin calculations)
+    const showVolume = overlays.some(o => o.type === 'volume' && o.visible)
 
     // Create main chart
     useEffect(() => {
@@ -88,11 +87,8 @@ function AnalysisChartInner() {
             if (param.time) {
                 const mainData = param.seriesData.get(main) as any
 
-                let volumeVal = undefined
-                if (showVolume) {
-                    const vData = param.seriesData.get(volume) as HistogramData<Time> | undefined
-                    volumeVal = vData?.value
-                }
+                const vData = param.seriesData.get(volume) as HistogramData<Time> | undefined
+                const volumeVal = vData?.value
 
                 setLegend({
                     ...mainData,
@@ -140,12 +136,12 @@ function AnalysisChartInner() {
             <div un-flex="~">
                 <div un-flex="~ items-center gap-2" un-bg="slate-50" un-p="2 r-4" un-border="~ slate-200 rounded-lg">
                     <Settings size={16} un-mr='2' />
-                    <ToggleButton active={showVolume} onClick={() => toggleOverlay('volume-default')}>
-                        Volume
-                    </ToggleButton>
-                    <ToggleButton active={false} onClick={() => addIndicator('macd')}>
+                    <AddButton onClick={() => addOverlay('volume')}>
+                        + Volume
+                    </AddButton>
+                    <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
-                    </ToggleButton>
+                    </AddButton>
                 </div>
             </div>
 

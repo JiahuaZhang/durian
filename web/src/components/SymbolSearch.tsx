@@ -8,6 +8,7 @@ const POPULAR_SYMBOLS = [
     { symbol: 'NVDA', name: 'NVIDIA' },
     { symbol: 'USAR', name: 'USA Rare Earth' },
     { symbol: 'SMR', name: 'Nuscale Power' },
+    { symbol: 'ONDS', name: 'Ondas Inc' },
     { symbol: 'AAPL', name: 'Apple' },
     { symbol: 'MSFT', name: 'Microsoft' },
     { symbol: 'GOOG', name: 'Alphabet' },
