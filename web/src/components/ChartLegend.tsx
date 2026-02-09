@@ -1,4 +1,4 @@
-import { type MainLegend, type OverlayIndicator, type VolumeConfig, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
+import { type EMAConfig, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
@@ -29,11 +29,16 @@ const getOverlayValue = (overlay: OverlayIndicator): number | undefined => {
     switch (overlay.type) {
         case 'volume':
             return (overlay.legend as VolumeLegend).volume;
-        // Future: add SMA, EMA value extraction here
+        case 'sma':
+        case 'ema':
+            return (overlay.legend as SMALegend).value;
         default:
             return undefined;
     }
 }
+
+// Check if overlay is a moving average type
+const isMAOverlay = (type: string) => type === 'sma' || type === 'ema';
 
 type OverlayLegendItemProps = {
     overlay: OverlayIndicator;
@@ -59,7 +64,9 @@ function OverlayLegendItem({ overlay, color }: OverlayLegendItemProps) {
         >
             <span un-text="slate-500">{getOverlayLabel(overlay)}</span>
             {value !== undefined && overlay.visible && (
-                <span un-text={color}>{formatVol(value)}</span>
+                <span un-text={color}>
+                    {isMAOverlay(overlay.type) ? formatPrice(value) : formatVol(value)}
+                </span>
             )}
             {isHovered && (
                 <>
@@ -118,6 +125,36 @@ function OverlayLegendItem({ overlay, color }: OverlayLegendItemProps) {
                     ]}
                 />
             )}
+            {(overlay.type === 'sma' || overlay.type === 'ema') && (
+                <ChartConfigPopup
+                    title={overlay.type === 'sma' ? 'SMA Settings' : 'EMA Settings'}
+                    isOpen={configOpen}
+                    onClose={() => setConfigOpen(false)}
+                    triggerRef={cogRef}
+                    tabs={[
+                        {
+                            id: 'inputs',
+                            label: 'Inputs',
+                            content: (
+                                <MAInputsPanel
+                                    config={overlay.config as SMAConfig | EMAConfig}
+                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
+                                />
+                            )
+                        },
+                        {
+                            id: 'style',
+                            label: 'Style',
+                            content: (
+                                <MAStylePanel
+                                    config={overlay.config as SMAConfig | EMAConfig}
+                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
+                                />
+                            )
+                        }
+                    ]}
+                />
+            )}
         </div>
     )
 }
@@ -154,6 +191,74 @@ function VolumeStylePanel({ config, onUpdate }: VolumeStylePanelProps) {
                     un-border="~ slate-200 rounded"
                     un-cursor="pointer"
                 />
+            </div>
+        </div>
+    )
+}
+
+// MA Inputs panel (period)
+type MAInputsPanelProps = {
+    config: SMAConfig | EMAConfig;
+    onUpdate: (updates: Partial<SMAConfig | EMAConfig>) => void;
+}
+
+function MAInputsPanel({ config, onUpdate }: MAInputsPanelProps) {
+    return (
+        <div un-flex="~ col gap-3">
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Period</label>
+                <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={config.period}
+                    onChange={(e) => onUpdate({ period: Math.max(1, Math.min(500, parseInt(e.target.value) || 1)) })}
+                    un-w="20"
+                    un-p="x-2 y-1"
+                    un-text="sm right"
+                    un-border="~ slate-200 rounded"
+                />
+            </div>
+        </div>
+    )
+}
+
+// MA Style panel (color, lineWidth)
+type MAStylePanelProps = {
+    config: SMAConfig | EMAConfig;
+    onUpdate: (updates: Partial<SMAConfig | EMAConfig>) => void;
+}
+
+function MAStylePanel({ config, onUpdate }: MAStylePanelProps) {
+    return (
+        <div un-flex="~ col gap-3">
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Color</label>
+                <input
+                    type="color"
+                    value={config.color}
+                    onChange={(e) => onUpdate({ color: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Line Width</label>
+                <select
+                    value={config.lineWidth}
+                    onChange={(e) => onUpdate({ lineWidth: parseInt(e.target.value) as 1 | 2 | 3 | 4 })}
+                    un-p="x-2 y-1"
+                    un-text="sm"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                >
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                </select>
             </div>
         </div>
     )

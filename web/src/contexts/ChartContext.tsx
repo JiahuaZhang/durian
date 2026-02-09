@@ -39,7 +39,15 @@ export type VolumeLegend = {
     volume: number;
 };
 
-export type OverlayLegend = VolumeLegend; // Union type for future overlay legends
+export type SMALegend = {
+    value: number;
+};
+
+export type EMALegend = {
+    value: number;
+};
+
+export type OverlayLegend = VolumeLegend | SMALegend | EMALegend;
 
 export type OverlayIndicator = {
     id: string;

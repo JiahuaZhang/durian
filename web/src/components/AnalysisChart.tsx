@@ -1,7 +1,8 @@
-import { CandlestickSeries, createChart, HistogramData, HistogramSeries, Time } from 'lightweight-charts';
+import { CandlestickSeries, createChart, HistogramData, HistogramSeries, LineData, LineSeries, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { CandleData, ChartProvider, useIndicators, useMainChart, useOverlays, VolumeConfig } from '../contexts/ChartContext';
+import { EMA, SMA } from 'technicalindicators';
+import { CandleData, ChartProvider, EMAConfig, SMAConfig, useIndicators, useMainChart, useOverlays, VolumeConfig } from '../contexts/ChartContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
 import { ChartLegend } from './ChartLegend';
 import { TechnicalSignals } from './TechnicalSignals';
@@ -66,9 +67,11 @@ function AnalysisChartInner() {
         })
         prevOverlaysRef.current = overlays
 
-        // Process each volume overlay that doesn't have a series yet
+        // Process each overlay that doesn't have a series yet
         overlays.forEach(overlay => {
-            if (overlay.type === 'volume' && !overlay.series) {
+            if (overlay.series) return; // Already has series
+
+            if (overlay.type === 'volume') {
                 const config = overlay.config as VolumeConfig
                 const volumeSeries = chart.addSeries(HistogramSeries, {
                     priceScaleId: '',
@@ -82,25 +85,76 @@ function AnalysisChartInner() {
                     color: d.close >= d.open ? config.upColor : config.downColor
                 })) as any)
 
-                // Store series in overlay
                 updateOverlay(overlay.id, { series: volumeSeries })
+            }
+
+            if (overlay.type === 'sma' || overlay.type === 'ema') {
+                const config = overlay.config as SMAConfig | EMAConfig
+                const closePrices = data.map(d => d.close)
+
+                const calculatedValues = overlay.type === 'sma'
+                    ? SMA.calculate({ period: config.period, values: closePrices })
+                    : EMA.calculate({ period: config.period, values: closePrices })
+
+                if (!calculatedValues.length) return
+
+                const maSeries = chart.addSeries(LineSeries, {
+                    color: config.color,
+                    lineWidth: config.lineWidth as 1 | 2 | 3 | 4,
+                    lastValueVisible: false,
+                    priceLineVisible: false,
+                    crosshairMarkerVisible: true,
+                })
+
+                const seriesData = data.slice(config.period - 1).map((d, i) => ({
+                    time: d.time as unknown as Time,
+                    value: calculatedValues[i]
+                }))
+                maSeries.setData(seriesData)
+
+                updateOverlay(overlay.id, { series: maSeries })
             }
         })
     }, [chart, data, overlays, updateOverlay])
 
-    // Update volume series when config changes (e.g., colors)
+    // Update overlay series when config changes
     useEffect(() => {
         if (!chart || !data.length) return
 
         overlays.forEach(overlay => {
-            if (overlay.type === 'volume' && overlay.series) {
+            if (!overlay.series) return
+
+            if (overlay.type === 'volume') {
                 const config = overlay.config as VolumeConfig
-                // Re-set data with updated colors
                 overlay.series.setData(data.map(d => ({
                     time: d.time,
                     value: d.volume,
                     color: d.close >= d.open ? config.upColor : config.downColor
                 })) as any)
+            }
+
+            if (overlay.type === 'sma' || overlay.type === 'ema') {
+                const config = overlay.config as SMAConfig | EMAConfig
+                const closePrices = data.map(d => d.close)
+
+                const calculatedValues = overlay.type === 'sma'
+                    ? SMA.calculate({ period: config.period, values: closePrices })
+                    : EMA.calculate({ period: config.period, values: closePrices })
+
+                if (!calculatedValues.length) return
+
+                // Update line style options
+                overlay.series.applyOptions({
+                    color: config.color,
+                    lineWidth: config.lineWidth as 1 | 2 | 3 | 4,
+                })
+
+                // Recalculate and set data
+                const seriesData = data.slice(config.period - 1).map((d, i) => ({
+                    time: d.time as unknown as Time,
+                    value: calculatedValues[i]
+                }))
+                overlay.series.setData(seriesData)
             }
         })
     }, [chart, data, overlays])
@@ -125,17 +179,25 @@ function AnalysisChartInner() {
                     })
                 }
 
-                // Update each volume overlay legend from its own series
-                overlays.filter(o => o.type === 'volume' && o.series).forEach(overlay => {
-                    const vData = param.seriesData.get(overlay.series) as HistogramData<Time> | undefined
-                    if (vData?.value !== undefined) {
-                        setOverlayLegend(overlay.id, { volume: vData.value })
+                // Update overlay legends from their series
+                overlays.filter(o => o.series).forEach(overlay => {
+                    if (overlay.type === 'volume') {
+                        const vData = param.seriesData.get(overlay.series) as HistogramData<Time> | undefined
+                        if (vData?.value !== undefined) {
+                            setOverlayLegend(overlay.id, { volume: vData.value })
+                        }
+                    }
+                    if (overlay.type === 'sma' || overlay.type === 'ema') {
+                        const lineData = param.seriesData.get(overlay.series) as LineData<Time> | undefined
+                        if (lineData?.value !== undefined) {
+                            setOverlayLegend(overlay.id, { value: lineData.value })
+                        }
                     }
                 })
             } else {
                 setMainLegend(null)
-                // Clear all volume overlay legends
-                overlays.filter(o => o.type === 'volume').forEach(overlay => {
+                // Clear all overlay legends
+                overlays.forEach(overlay => {
                     setOverlayLegend(overlay.id, undefined)
                 })
             }
@@ -145,7 +207,7 @@ function AnalysisChartInner() {
         return () => chart.unsubscribeCrosshairMove(handleCrosshair)
     }, [chart, series.candle, overlays, setMainLegend, setOverlayLegend])
 
-    // Volume visibility - handle each overlay's visibility
+    // Overlay visibility - handle each overlay's visibility
     useEffect(() => {
         if (!chart) return
 
@@ -163,7 +225,7 @@ function AnalysisChartInner() {
             })
         }
 
-        // Update each volume overlay's series visibility
+        // Update volume overlays visibility
         volumeOverlays.forEach(overlay => {
             overlay.series?.applyOptions({ visible: overlay.visible })
             if (overlay.visible) {
@@ -171,6 +233,11 @@ function AnalysisChartInner() {
                     scaleMargins: { top: 0.8, bottom: 0 },
                 })
             }
+        })
+
+        // Update SMA/EMA overlays visibility
+        overlays.filter(o => (o.type === 'sma' || o.type === 'ema') && o.series).forEach(overlay => {
+            overlay.series?.applyOptions({ visible: overlay.visible })
         })
     }, [chart, overlays])
 
@@ -181,6 +248,12 @@ function AnalysisChartInner() {
                     <Settings size={16} un-mr='2' />
                     <AddButton onClick={() => addOverlay('volume')}>
                         + Volume
+                    </AddButton>
+                    <AddButton onClick={() => addOverlay('sma')}>
+                        + SMA
+                    </AddButton>
+                    <AddButton onClick={() => addOverlay('ema')}>
+                        + EMA
                     </AddButton>
                     <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
