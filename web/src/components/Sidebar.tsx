@@ -6,6 +6,7 @@ import {
     History,
     Home,
     LayoutGrid,
+    LineChart,
     Menu,
     Newspaper,
     PieChart,
@@ -21,6 +22,7 @@ export function Sidebar() {
     const navItems = [
         { icon: Home, label: 'Home', to: '/' },
         { icon: LayoutGrid, label: 'Overview', to: '/overview' },
+        { icon: LineChart, label: 'Analysis', to: '/analysis' },
         { icon: Newspaper, label: 'News', to: '/news' },
         { icon: CalendarDays, label: 'Calendar', to: '/economic-calendar' },
         { icon: TrendingUp, label: 'Futures', to: '/futures' },
