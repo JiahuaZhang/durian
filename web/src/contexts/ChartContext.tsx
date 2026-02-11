@@ -91,6 +91,7 @@ export type SubIndicator = {
     type: IndicatorType;
     visible: boolean;
     config: MACDConfig | RSIConfig;
+    data?: any;
     chart?: ReturnType<typeof createChart>;
     series?: Record<string, ISeriesApi<any>>;
     legend?: any;

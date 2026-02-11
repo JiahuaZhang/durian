@@ -2,7 +2,7 @@ import { createChart, createSeriesMarkers, HistogramSeries, ISeriesApi, LineSeri
 import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MACDConfig, useChartContext, useIndicators, useMainChart } from '../contexts/ChartContext';
-import { calcMACD, findMACDDivergences, MACDData } from '../utils/analysis';
+import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData } from '../utils/analysis';
 import { ChartConfigPopup } from './ChartConfigPopup';
 import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
 
@@ -38,6 +38,8 @@ export function MACDChart({ id }: MACDChartProps) {
         });
     }, [data, macdConfig?.fastPeriod, macdConfig?.slowPeriod, macdConfig?.signalPeriod]);
 
+    const crosses = useMemo(() => findMACDCrosses(macdData), [macdData]);
+
     const divergences = useMemo(() => {
         if (!macdConfig?.showDivergences || data.length === 0) return [];
         return findMACDDivergences(data, macdData, {
@@ -49,6 +51,11 @@ export function MACDChart({ id }: MACDChartProps) {
         });
     }, [data, macdData, macdConfig?.showDivergences, macdConfig?.pivotLookbackLeft,
         macdConfig?.pivotLookbackRight, macdConfig?.rangeMin, macdConfig?.rangeMax, macdConfig?.dontTouchZero]);
+
+    // Sync computed data to context
+    useEffect(() => {
+        updateIndicator(id, { data: { macdData, crosses, divergences } });
+    }, [id, macdData, crosses, divergences, updateIndicator]);
 
     // Create chart
     useEffect(() => {
