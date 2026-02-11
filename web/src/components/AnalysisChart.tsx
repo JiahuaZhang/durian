@@ -112,7 +112,7 @@ function AnalysisChartInner() {
                 }))
                 maSeries.setData(seriesData)
 
-                updateOverlay(overlay.id, { series: maSeries })
+                updateOverlay(overlay.id, { series: maSeries, data: seriesData })
             }
         })
     }, [chart, data, overlays, updateOverlay])
@@ -155,6 +155,8 @@ function AnalysisChartInner() {
                     value: calculatedValues[i]
                 }))
                 overlay.series.setData(seriesData)
+
+                updateOverlay(overlay.id, { data: seriesData })
             }
         })
     }, [chart, data, overlays])

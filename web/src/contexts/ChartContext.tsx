@@ -54,6 +54,7 @@ export type OverlayIndicator = {
     type: OverlayType;
     visible: boolean;
     config: VolumeConfig | SMAConfig | EMAConfig;
+    data?: any;
     series?: ISeriesApi<any>;
     legend?: OverlayLegend;
 };
