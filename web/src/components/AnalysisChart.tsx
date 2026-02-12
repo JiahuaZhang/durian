@@ -2,7 +2,8 @@ import { CandlestickSeries, createChart, HistogramData, HistogramSeries, LineDat
 import { Settings } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { EMA, SMA } from 'technicalindicators';
-import { CandleData, ChartProvider, EMAConfig, SMAConfig, useIndicators, useMainChart, useOverlays, VolumeConfig } from '../contexts/ChartContext';
+import type { CandleData } from '../contexts/ChartContext';
+import { ChartProvider, EMAConfig, SMAConfig, useCandleData, useIndicators, useLegend, useMainChart, useOverlays, VolumeConfig } from '../contexts/ChartContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
 import { ChartLegend } from './ChartLegend';
 import { TechnicalSignals } from './TechnicalSignals';
@@ -27,9 +28,11 @@ const AddButton = ({ onClick, children }: { onClick: () => void, children: React
 
 function AnalysisChartInner() {
     const chartContainerRef = useRef<HTMLDivElement>(null)
-    const { data, chart, series, setMainChart, setMainSeries, setMainLegend } = useMainChart()
-    const { overlays, addOverlay, updateOverlay, setOverlayLegend } = useOverlays()
+    const data = useCandleData()
+    const { chart, series, setMainChart, setMainSeries } = useMainChart()
+    const { overlays, addOverlay, updateOverlay } = useOverlays()
     const { addIndicator } = useIndicators()
+    const { setMainLegend, setOverlayLegend } = useLegend()
 
     // Create main chart (candlestick only)
     useEffect(() => {
@@ -156,12 +159,19 @@ function AnalysisChartInner() {
                 }))
                 overlay.series.setData(seriesData)
 
-                updateOverlay(overlay.id, { data: seriesData })
+                if (!overlay.data) {
+                    updateOverlay(overlay.id, { data: seriesData })
+                }
             }
         })
     }, [chart, data, overlays])
 
     // Handle crosshair for legend
+    // KEY FIX: Use a ref to track current overlays so the crosshair handler
+    // doesn't need `overlays` in its dependency array. This breaks the infinite loop.
+    const overlaysRef = useRef(overlays)
+    overlaysRef.current = overlays
+
     useEffect(() => {
         if (!chart || !series.candle) return
 
@@ -181,8 +191,9 @@ function AnalysisChartInner() {
                     })
                 }
 
-                // Update overlay legends from their series
-                overlays.filter(o => o.series).forEach(overlay => {
+                // Update overlay legends from their series (read from ref to avoid dep)
+                const currentOverlays = overlaysRef.current
+                currentOverlays.filter(o => o.series).forEach(overlay => {
                     if (overlay.type === 'volume') {
                         const vData = param.seriesData.get(overlay.series) as HistogramData<Time> | undefined
                         if (vData?.value !== undefined) {
@@ -199,7 +210,8 @@ function AnalysisChartInner() {
             } else {
                 setMainLegend(null)
                 // Clear all overlay legends
-                overlays.forEach(overlay => {
+                const currentOverlays = overlaysRef.current
+                currentOverlays.forEach(overlay => {
                     setOverlayLegend(overlay.id, undefined)
                 })
             }
@@ -207,7 +219,7 @@ function AnalysisChartInner() {
 
         chart.subscribeCrosshairMove(handleCrosshair)
         return () => chart.unsubscribeCrosshairMove(handleCrosshair)
-    }, [chart, series.candle, overlays, setMainLegend, setOverlayLegend])
+    }, [chart, series.candle, setMainLegend, setOverlayLegend])
 
     // Overlay visibility - handle each overlay's visibility
     useEffect(() => {

@@ -1,4 +1,4 @@
-import { type EMAConfig, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useMainChart, useOverlays } from "@/contexts/ChartContext";
+import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "@/contexts/ChartContext";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
@@ -23,15 +23,15 @@ const getOverlayLabel = (overlay: OverlayIndicator) => {
 }
 
 // Get formatted value for overlay based on type
-const getOverlayValue = (overlay: OverlayIndicator): number | undefined => {
-    if (!overlay.legend) return undefined;
+const getOverlayValueFromLegend = (type: string, legend: VolumeLegend | SMALegend | EMALegend | undefined): number | undefined => {
+    if (!legend) return undefined;
     
-    switch (overlay.type) {
+    switch (type) {
         case 'volume':
-            return (overlay.legend as VolumeLegend).volume;
+            return (legend as VolumeLegend).volume;
         case 'sma':
         case 'ema':
-            return (overlay.legend as SMALegend).value;
+            return (legend as SMALegend).value;
         default:
             return undefined;
     }
@@ -42,10 +42,11 @@ const isMAOverlay = (type: string) => type === 'sma' || type === 'ema';
 
 type OverlayLegendItemProps = {
     overlay: OverlayIndicator;
+    overlayLegend: VolumeLegend | SMALegend | EMALegend | undefined;
     color: string;
 }
 
-function OverlayLegendItem({ overlay, color }: OverlayLegendItemProps) {
+function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemProps) {
     const [isHovered, setIsHovered] = useState(false);
     const [configOpen, setConfigOpen] = useState(false);
     const cogRef = useRef<HTMLButtonElement>(null);
@@ -53,7 +54,7 @@ function OverlayLegendItem({ overlay, color }: OverlayLegendItemProps) {
     // Use context directly - no prop drilling
     const { toggleOverlay, removeOverlay, updateOverlayConfig } = useOverlays();
     
-    const value = getOverlayValue(overlay);
+    const value = getOverlayValueFromLegend(overlay.type, overlayLegend);
 
     return (
         <div 
@@ -265,7 +266,7 @@ function MAStylePanel({ config, onUpdate }: MAStylePanelProps) {
 }
 
 export function ChartLegend() {
-    const { legend } = useMainChart();
+    const { mainLegend: legend, overlayLegends } = useLegend();
     const { overlays } = useOverlays();
     
     if (!legend && overlays.length === 0) return null;
@@ -329,6 +330,7 @@ export function ChartLegend() {
                             <OverlayLegendItem
                                 key={overlay.id}
                                 overlay={overlay}
+                                overlayLegend={overlayLegends[overlay.id]}
                                 color={color}
                             />
                         ))}
