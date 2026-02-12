@@ -1,11 +1,12 @@
-import { CandlestickSeries, createChart, HistogramData, HistogramSeries, LineData, LineSeries, Time } from 'lightweight-charts';
+import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, HistogramSeries, LineData, LineSeries, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { EMA, SMA } from 'technicalindicators';
 import type { CandleData } from '../contexts/ChartContext';
 import { ChartProvider, EMAConfig, SMAConfig, useCandleData, useIndicators, useLegend, useMainChart, useOverlays, VolumeConfig } from '../contexts/ChartContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
 import { ChartLegend } from './ChartLegend';
+import { findMACrosses } from './MovingAverageSignal';
 import { TechnicalSignals } from './TechnicalSignals';
 
 type AnalysisChartProps = {
@@ -254,6 +255,44 @@ function AnalysisChartInner() {
             overlay.series?.applyOptions({ visible: overlay.visible })
         })
     }, [chart, overlays])
+
+    // Render cross signal markers on the candlestick series
+    const maOverlaysWithSignals = useMemo(() => {
+        return overlays.filter(o =>
+            (o.type === 'sma' || o.type === 'ema') && o.visible && o.data &&
+            (o.config as SMAConfig | EMAConfig).showCrossSignals
+        );
+    }, [overlays]);
+
+    useEffect(() => {
+        if (!series.candle) return;
+
+        const allMarkers: { time: string; position: 'belowBar' | 'aboveBar'; color: string; shape: 'arrowUp' | 'arrowDown'; text: string }[] = [];
+
+        maOverlaysWithSignals.forEach(overlay => {
+            const crosses = findMACrosses(data, overlay.data);
+            const config = overlay.config as SMAConfig | EMAConfig;
+            const label = overlay.type === 'sma' ? `SMA${config.period}` : `EMA${config.period}`;
+
+            crosses.forEach(cross => {
+                allMarkers.push({
+                    time: cross.date,
+                    position: cross.type === 'bullish' ? 'belowBar' : 'aboveBar',
+                    color: cross.type === 'bullish' ? '#26A69A' : '#EF5350',
+                    shape: cross.type === 'bullish' ? 'arrowUp' : 'arrowDown',
+                    text: `${cross.type === 'bullish' ? 'Bull' : 'Bear'} ${label}`,
+                });
+            });
+        });
+
+        allMarkers.sort((a, b) => a.time.localeCompare(b.time));
+
+        const plugin = createSeriesMarkers(series.candle, allMarkers as any);
+
+        return () => {
+            plugin.detach();
+        };
+    }, [series.candle, data, maOverlaysWithSignals]);
 
     return (
         <div un-flex="~ col gap-4">

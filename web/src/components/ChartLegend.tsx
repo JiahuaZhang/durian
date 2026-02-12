@@ -152,6 +152,16 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                                     onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
                                 />
                             )
+                        },
+                        {
+                            id: 'signals',
+                            label: 'Signals',
+                            content: (
+                                <MASignalsPanel
+                                    config={overlay.config as SMAConfig | EMAConfig}
+                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
+                                />
+                            )
                         }
                     ]}
                 />
@@ -260,6 +270,30 @@ function MAStylePanel({ config, onUpdate }: MAStylePanelProps) {
                     <option value={3}>3</option>
                     <option value={4}>4</option>
                 </select>
+            </div>
+        </div>
+    )
+}
+
+// MA Signals panel (showCrossSignals)
+type MASignalsPanelProps = {
+    config: SMAConfig | EMAConfig;
+    onUpdate: (updates: Partial<SMAConfig | EMAConfig>) => void;
+}
+
+function MASignalsPanel({ config, onUpdate }: MASignalsPanelProps) {
+    return (
+        <div un-flex="~ col gap-3" un-min-w="48">
+            <div un-flex="~ items-center justify-between" un-py="1">
+                <label un-text="sm slate-600">Show Cross Signals</label>
+                <input
+                    type="checkbox"
+                    checked={config.showCrossSignals}
+                    onChange={(e) => onUpdate({ showCrossSignals: e.target.checked })}
+                    un-w="4"
+                    un-h="4"
+                    un-cursor="pointer"
+                />
             </div>
         </div>
     )

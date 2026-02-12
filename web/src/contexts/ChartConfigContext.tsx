@@ -16,12 +16,14 @@ export type SMAConfig = {
     period: number;
     color: string;
     lineWidth: number;
+    showCrossSignals: boolean;
 };
 
 export type EMAConfig = {
     period: number;
     color: string;
     lineWidth: number;
+    showCrossSignals: boolean;
 };
 
 export type OverlayIndicator = {
@@ -190,10 +192,10 @@ export function ChartConfigProvider({ children }: { children: ReactNode }) {
                 config = { ...defaultVolumeConfig };
                 break;
             case 'sma':
-                config = { period: 20, color: '#2962FF', lineWidth: 1 };
+                config = { period: 20, color: '#2962FF', lineWidth: 1, showCrossSignals: false };
                 break;
             case 'ema':
-                config = { period: 20, color: '#FF6D00', lineWidth: 1 };
+                config = { period: 20, color: '#FF6D00', lineWidth: 1, showCrossSignals: false };
                 break;
         }
 

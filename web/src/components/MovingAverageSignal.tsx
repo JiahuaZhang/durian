@@ -2,7 +2,7 @@ import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CandleData, EMAConfig, OverlayIndicator, SMAConfig, useCandleData } from '../contexts/ChartContext';
 
-type MACross = {
+export type MACross = {
     date: string;
     type: 'bullish' | 'bearish';
     price: number;
@@ -10,7 +10,7 @@ type MACross = {
     daysSinceLastCross?: number;
 };
 
-function findMACrosses(data: CandleData[], maData: { time: unknown; value: number }[]): MACross[] {
+export function findMACrosses(data: CandleData[], maData: { time: unknown; value: number }[]): MACross[] {
     const crosses: MACross[] = [];
 
     // Build a map from time -> MA value for quick lookup
