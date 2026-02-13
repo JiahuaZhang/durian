@@ -57,7 +57,7 @@ function ColorInput({ label, value, onChange }: ColorInputProps) {
 // Helper hook to get a specific MACD indicator's config by id
 function useMACDIndicatorConfig(id: string) {
     const { indicators, updateIndicatorConfig } = useIndicators();
-    const macdIndicator = indicators.find(i => i.id === id);
+    const macdIndicator = indicators[id];
 
     const config = macdIndicator?.config as MACDConfig | undefined;
 

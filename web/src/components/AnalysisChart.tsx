@@ -1,8 +1,9 @@
 import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, LineData, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
-import type { CandleData } from '../contexts/ChartContext';
-import { ChartProvider, EMAConfig, SMAConfig, useCandleData, useIndicators, useLegend, useMainChart, useOverlayConfigs, useOverlayData } from '../contexts/ChartContext';
+import type { CandleData, EMAConfig, SMAConfig } from '../contexts/ChartContext';
+import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from '../contexts/ChartContext';
+import { CandleDataProvider } from '../contexts/ChartDataContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
 import { ChartLegend } from './ChartLegend';
 import { findMACrosses } from './MovingAverageSignal';
@@ -29,39 +30,40 @@ const AddButton = ({ onClick, children }: { onClick: () => void, children: React
 function AnalysisChartInner() {
     const chartContainerRef = useRef<HTMLDivElement>(null)
     const data = useCandleData()
-    const { chart, series, setMainChart, setMainSeries } = useMainChart()
-    const { overlays, addOverlay } = useOverlayConfigs()
-    const { overlayDataMap } = useOverlayData()
+    const { chartRef, candleSeriesRef, actions } = useChart()
+    const { overlays, overlaySeriesRef, addOverlay } = useOverlays()
     const { addIndicator } = useIndicators()
     const { setMainLegend, setOverlayLegend } = useLegend()
 
-    // Create main chart (candlestick only)
+    // Convert overlays record to array for iteration
+    const overlayList = useMemo(() => Object.values(overlays), [overlays])
+
+    // Create main chart — one-time init, imperative
     useEffect(() => {
         if (!chartContainerRef.current || data.length === 0) return
 
         const newChart = createChart(chartContainerRef.current)
-
         const mainSeries = newChart.addSeries(CandlestickSeries)
         mainSeries.setData(data as any)
 
-        // Register with context
-        setMainChart(newChart)
-        setMainSeries({ candle: mainSeries })
+        // Register with context — this also creates series for default overlays
+        actions.initChart(newChart, mainSeries)
 
         return () => {
             newChart.remove()
-            setMainChart(null)
+            actions.destroyChart()
         }
-    }, [data, setMainChart, setMainSeries])
+    }, [data, actions])
 
     // Handle crosshair for legend
-    const overlaysRef = useRef(overlays)
-    overlaysRef.current = overlays
-    const overlayDataRef = useRef(overlayDataMap)
-    overlayDataRef.current = overlayDataMap
+    const overlaysRef = useRef(overlayList)
+    overlaysRef.current = overlayList
+    const overlaySeriesRefValue = overlaySeriesRef
 
     useEffect(() => {
-        if (!chart || !series.candle) return
+        const chart = chartRef.current
+        const candleSeries = candleSeriesRef.current
+        if (!chart || !candleSeries) return
 
         const handleCrosshair = (param: any) => {
             const isHovering = param.point !== undefined && param.time !== undefined &&
@@ -69,7 +71,7 @@ function AnalysisChartInner() {
                 param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight
 
             if (param.time && isHovering) {
-                const mainData = param.seriesData.get(series.candle) as any
+                const mainData = param.seriesData.get(candleSeries) as any
                 if (mainData) {
                     setMainLegend({
                         open: mainData.open,
@@ -79,21 +81,21 @@ function AnalysisChartInner() {
                     })
                 }
 
-                // Update overlay legends from their series (read from refs to avoid dep)
+                // Update overlay legends
                 const currentOverlays = overlaysRef.current
-                const currentDataMap = overlayDataRef.current
+                const seriesMap = overlaySeriesRefValue.current
                 currentOverlays.forEach(overlay => {
-                    const od = currentDataMap[overlay.id]
-                    if (!od?.series) return
+                    const series = seriesMap.get(overlay.id)
+                    if (!series) return
 
                     if (overlay.type === 'volume') {
-                        const vData = param.seriesData.get(od.series) as HistogramData<Time> | undefined
+                        const vData = param.seriesData.get(series) as HistogramData<Time> | undefined
                         if (vData?.value !== undefined) {
                             setOverlayLegend(overlay.id, { volume: vData.value })
                         }
                     }
                     if (overlay.type === 'sma' || overlay.type === 'ema') {
-                        const lineData = param.seriesData.get(od.series) as LineData<Time> | undefined
+                        const lineData = param.seriesData.get(series) as LineData<Time> | undefined
                         if (lineData?.value !== undefined) {
                             setOverlayLegend(overlay.id, { value: lineData.value })
                         }
@@ -110,65 +112,25 @@ function AnalysisChartInner() {
 
         chart.subscribeCrosshairMove(handleCrosshair)
         return () => chart.unsubscribeCrosshairMove(handleCrosshair)
-    }, [chart, series.candle, setMainLegend, setOverlayLegend])
-
-    // Overlay visibility
-    useEffect(() => {
-        if (!chart) return
-
-        const volumeOverlays = overlays.filter(o => o.type === 'volume')
-        const anyVolumeVisible = volumeOverlays.some(o => o.visible)
-
-        // Adjust main chart margins based on whether any volume is visible
-        if (anyVolumeVisible) {
-            chart.priceScale('right').applyOptions({
-                scaleMargins: { top: 0.1, bottom: 0.2 },
-            })
-        } else {
-            chart.priceScale('right').applyOptions({
-                scaleMargins: { top: 0.1, bottom: 0 },
-            })
-        }
-
-        // Update volume overlays visibility
-        volumeOverlays.forEach(overlay => {
-            const od = overlayDataMap[overlay.id]
-            if (!od?.series) return
-            od.series.applyOptions({ visible: overlay.visible })
-            if (overlay.visible) {
-                od.series.priceScale().applyOptions({
-                    scaleMargins: { top: 0.8, bottom: 0 },
-                })
-            }
-        })
-
-        // Update SMA/EMA overlays visibility
-        overlays.filter(o => (o.type === 'sma' || o.type === 'ema')).forEach(overlay => {
-            const od = overlayDataMap[overlay.id]
-            if (!od?.series) return
-            od.series.applyOptions({ visible: overlay.visible })
-        })
-    }, [chart, overlays, overlayDataMap])
+    }, [chartRef, candleSeriesRef, overlaySeriesRefValue, setMainLegend, setOverlayLegend])
 
     // Render cross signal markers on the candlestick series
     const maOverlaysWithSignals = useMemo(() => {
-        return overlays.filter(o =>
+        return overlayList.filter(o =>
             (o.type === 'sma' || o.type === 'ema') && o.visible &&
             (o.config as SMAConfig | EMAConfig).showCrossSignals &&
-            overlayDataMap[o.id]?.data?.length > 0
+            o.data?.length > 0
         );
-    }, [overlays, overlayDataMap]);
+    }, [overlayList]);
 
     useEffect(() => {
-        if (!series.candle) return;
+        const candleSeries = candleSeriesRef.current
+        if (!candleSeries) return;
 
         const allMarkers: { time: string; position: 'belowBar' | 'aboveBar'; color: string; shape: 'arrowUp' | 'arrowDown'; text: string }[] = [];
 
         maOverlaysWithSignals.forEach(overlay => {
-            const od = overlayDataMap[overlay.id];
-            if (!od?.data) return;
-
-            const crosses = findMACrosses(data, od.data);
+            const crosses = findMACrosses(data, overlay.data);
             const config = overlay.config as SMAConfig | EMAConfig;
             const label = overlay.type === 'sma' ? `SMA${config.period}` : `EMA${config.period}`;
 
@@ -185,12 +147,12 @@ function AnalysisChartInner() {
 
         allMarkers.sort((a, b) => a.time.localeCompare(b.time));
 
-        const plugin = createSeriesMarkers(series.candle, allMarkers as any);
+        const plugin = createSeriesMarkers(candleSeries, allMarkers as any);
 
         return () => {
             plugin.detach();
         };
-    }, [series.candle, data, maOverlaysWithSignals, overlayDataMap]);
+    }, [candleSeriesRef, data, maOverlaysWithSignals]);
 
     return (
         <div un-flex="~ col gap-4">
@@ -234,8 +196,10 @@ function AnalysisChartInner() {
 
 export function AnalysisChart({ data }: AnalysisChartProps) {
     return (
-        <ChartProvider initialData={data}>
-            <AnalysisChartInner />
-        </ChartProvider>
+        <CandleDataProvider initialData={data}>
+            <ChartProvider>
+                <AnalysisChartInner />
+            </ChartProvider>
+        </CandleDataProvider>
     )
 }

@@ -1,10 +1,11 @@
+import { useMemo } from 'react';
 import { useIndicators } from '../contexts/ChartContext';
 import { MACDChart } from './MACDChart';
 
 export function AuxiliaryChart() {
     const { indicators } = useIndicators();
 
-    const visibleIndicators = indicators.filter(i => i.visible);
+    const visibleIndicators = useMemo(() => Object.values(indicators).filter(i => i.visible), [indicators]);
 
     if (visibleIndicators.length === 0) return null;
 

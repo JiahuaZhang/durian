@@ -1,13 +1,14 @@
-import { useIndicators, useOverlayConfigs } from '@/contexts/ChartContext';
+import { useIndicators, useOverlays } from '@/contexts/ChartContext';
+import { useMemo } from 'react';
 import { MACDTechnicalSignals } from './MACDTechnicalSignals';
 import { MovingAverageSignal } from './MovingAverageSignal';
 
 export function TechnicalSignals() {
     const { indicators } = useIndicators();
-    const { overlays } = useOverlayConfigs();
+    const { overlays: overlaysRecord } = useOverlays();
 
-    const macdIndicators = indicators.filter(i => i.type === 'macd');
-    const maOverlays = overlays.filter(o => (o.type === 'sma' || o.type === 'ema') && o.visible);
+    const macdIndicators = useMemo(() => Object.values(indicators).filter(i => i.type === 'macd'), [indicators]);
+    const maOverlays = useMemo(() => Object.values(overlaysRecord).filter(o => (o.type === 'sma' || o.type === 'ema') && o.visible), [overlaysRecord]);
 
     return (
         <div un-min-w="xs" un-shrink="0" un-max-h="xl" un-border="~ slate-200 rounded-lg" un-bg="slate-50" un-p="3" un-flex="~ col gap-3" un-overflow="y-auto">

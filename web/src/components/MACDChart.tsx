@@ -1,7 +1,7 @@
 import { createChart, createSeriesMarkers, HistogramSeries, ISeriesApi, LineSeries } from 'lightweight-charts';
 import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MACDConfig, useCandleData, useIndicators, useMainChart } from '../contexts/ChartContext';
+import { MACDConfig, useCandleData, useChart, useIndicators } from '../contexts/ChartContext';
 import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData } from '../utils/analysis';
 import { ChartConfigPopup } from './ChartConfigPopup';
 import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
@@ -22,9 +22,8 @@ export function MACDChart({ id }: MACDChartProps) {
     const [configOpen, setConfigOpen] = useState(false);
     const cogRef = useRef<HTMLButtonElement>(null);
 
-    const { syncingRef } = useMainChart();
+    const { chartRef: mainChartRef, candleSeriesRef, syncingRef } = useChart();
     const data = useCandleData();
-    const { chart: mainChart, series: mainSeries } = useMainChart();
     const { getIndicator, updateIndicator, removeIndicator } = useIndicators();
 
     const indicator = getIndicator(id);
@@ -159,6 +158,7 @@ export function MACDChart({ id }: MACDChartProps) {
 
     // Sync time scale with main chart
     useEffect(() => {
+        const mainChart = mainChartRef.current;
         if (!chart || !mainChart) return;
 
         const handleMainRangeChange = (range: any) => {
@@ -182,13 +182,15 @@ export function MACDChart({ id }: MACDChartProps) {
             mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(handleMainRangeChange);
             chart.timeScale().unsubscribeVisibleLogicalRangeChange(handleAuxRangeChange);
         };
-    }, [chart, mainChart, syncingRef]);
+    }, [chart, mainChartRef, syncingRef]);
 
     // Sync crosshair with main chart
     useEffect(() => {
+        const mainChart = mainChartRef.current;
+        const candleSeries = candleSeriesRef.current;
         if (!chart || !mainChart) return;
         const { histogram } = seriesRef.current;
-        if (!histogram || !mainSeries.candle) return;
+        if (!histogram || !candleSeries) return;
 
         const mainToAux = (param: any) => {
             if (param.time) {
@@ -200,7 +202,7 @@ export function MACDChart({ id }: MACDChartProps) {
 
         const auxToMain = (param: any) => {
             if (param.time) {
-                mainChart.setCrosshairPosition(0, param.time, mainSeries.candle!);
+                mainChart.setCrosshairPosition(0, param.time, candleSeries);
             } else {
                 mainChart.clearCrosshairPosition();
             }
@@ -213,7 +215,7 @@ export function MACDChart({ id }: MACDChartProps) {
             mainChart.unsubscribeCrosshairMove(mainToAux);
             chart.unsubscribeCrosshairMove(auxToMain);
         };
-    }, [chart, mainChart, mainSeries.candle]);
+    }, [chart, mainChartRef, candleSeriesRef]);
 
     // Handle crosshair for legend
     useEffect(() => {
