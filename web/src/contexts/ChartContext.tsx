@@ -23,6 +23,10 @@ export type SMAConfig = {
     color: string;
     lineWidth: number;
     showCrossSignals: boolean;
+    bullishColor: string;
+    bearishColor: string;
+    bullishTextColor: string;
+    bearishTextColor: string;
 };
 
 export type EMAConfig = {
@@ -30,6 +34,10 @@ export type EMAConfig = {
     color: string;
     lineWidth: number;
     showCrossSignals: boolean;
+    bullishColor: string;
+    bearishColor: string;
+    bullishTextColor: string;
+    bearishTextColor: string;
 };
 
 export type MACDConfig = {
@@ -381,6 +389,10 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 color: type === 'sma' ? '#2962FF' : '#FF6D00',
                 lineWidth: 1,
                 showCrossSignals: false,
+                bullishColor: '#26A69A',
+                bearishColor: '#EF5350',
+                bullishTextColor: '#1B5E20',
+                bearishTextColor: '#B71C1C',
             };
             let data: any[] = [];
 

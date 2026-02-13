@@ -127,7 +127,7 @@ function AnalysisChartInner() {
         const candleSeries = candleSeriesRef.current
         if (!candleSeries) return;
 
-        const allMarkers: { time: string; position: 'belowBar' | 'aboveBar'; color: string; shape: 'arrowUp' | 'arrowDown'; text: string }[] = [];
+        const allMarkers: { time: string; position: 'belowBar' | 'aboveBar'; color: string; shape: 'arrowUp' | 'arrowDown'; text: string; textColor?: string }[] = [];
 
         maOverlaysWithSignals.forEach(overlay => {
             const crosses = findMACrosses(data, overlay.data);
@@ -135,12 +135,14 @@ function AnalysisChartInner() {
             const label = overlay.type === 'sma' ? `SMA${config.period}` : `EMA${config.period}`;
 
             crosses.forEach(cross => {
+                const isBull = cross.type === 'bullish';
                 allMarkers.push({
                     time: cross.date,
-                    position: cross.type === 'bullish' ? 'belowBar' : 'aboveBar',
-                    color: cross.type === 'bullish' ? '#26A69A' : '#EF5350',
-                    shape: cross.type === 'bullish' ? 'arrowUp' : 'arrowDown',
-                    text: `${cross.type === 'bullish' ? 'Bull' : 'Bear'} ${label}`,
+                    position: isBull ? 'belowBar' : 'aboveBar',
+                    color: isBull ? config.bullishColor : config.bearishColor,
+                    shape: isBull ? 'arrowUp' : 'arrowDown',
+                    text: `${isBull ? 'Bull' : 'Bear'} ${label}`,
+                    textColor: isBull ? config.bullishTextColor : config.bearishTextColor,
                 });
             });
         });

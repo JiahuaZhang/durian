@@ -1,7 +1,6 @@
 import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "@/contexts/ChartContext";
-import { useMemo } from "react";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
 
 const formatPrice = (val: number) => val.toFixed(2)
@@ -154,16 +153,6 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                                 />
                             )
                         },
-                        {
-                            id: 'signals',
-                            label: 'Signals',
-                            content: (
-                                <MASignalsPanel
-                                    config={overlay.config as SMAConfig | EMAConfig}
-                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
-                                />
-                            )
-                        }
                     ]}
                 />
             )}
@@ -231,6 +220,17 @@ function MAInputsPanel({ config, onUpdate }: MAInputsPanelProps) {
                     un-border="~ slate-200 rounded"
                 />
             </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Show Cross Signals</label>
+                <input
+                    type="checkbox"
+                    checked={config.showCrossSignals}
+                    onChange={(e) => onUpdate({ showCrossSignals: e.target.checked })}
+                    un-w="4"
+                    un-h="4"
+                    un-cursor="pointer"
+                />
+            </div>
         </div>
     )
 }
@@ -272,33 +272,59 @@ function MAStylePanel({ config, onUpdate }: MAStylePanelProps) {
                     <option value={4}>4</option>
                 </select>
             </div>
-        </div>
-    )
-}
-
-// MA Signals panel (showCrossSignals)
-type MASignalsPanelProps = {
-    config: SMAConfig | EMAConfig;
-    onUpdate: (updates: Partial<SMAConfig | EMAConfig>) => void;
-}
-
-function MASignalsPanel({ config, onUpdate }: MASignalsPanelProps) {
-    return (
-        <div un-flex="~ col gap-3" un-min-w="48">
-            <div un-flex="~ items-center justify-between" un-py="1">
-                <label un-text="sm slate-600">Show Cross Signals</label>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Bullish Color</label>
                 <input
-                    type="checkbox"
-                    checked={config.showCrossSignals}
-                    onChange={(e) => onUpdate({ showCrossSignals: e.target.checked })}
-                    un-w="4"
-                    un-h="4"
+                    type="color"
+                    value={config.bullishColor}
+                    onChange={(e) => onUpdate({ bullishColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Bullish Text</label>
+                <input
+                    type="color"
+                    value={config.bullishTextColor}
+                    onChange={(e) => onUpdate({ bullishTextColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Bearish Color</label>
+                <input
+                    type="color"
+                    value={config.bearishColor}
+                    onChange={(e) => onUpdate({ bearishColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
+                    un-cursor="pointer"
+                />
+            </div>
+            <div un-flex="~ items-center justify-between">
+                <label un-text="sm slate-600">Bearish Text</label>
+                <input
+                    type="color"
+                    value={config.bearishTextColor}
+                    onChange={(e) => onUpdate({ bearishTextColor: e.target.value })}
+                    un-w="8"
+                    un-h="8"
+                    un-border="~ slate-200 rounded"
                     un-cursor="pointer"
                 />
             </div>
         </div>
     )
 }
+
+
 
 export function ChartLegend() {
     const { mainLegend: legend, overlayLegends } = useLegend();
