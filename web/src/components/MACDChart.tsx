@@ -1,7 +1,7 @@
 import { createChart, createSeriesMarkers, HistogramSeries, ISeriesApi, LineSeries } from 'lightweight-charts';
 import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MACDConfig, useCandleData, useChartConfig, useIndicators, useMainChart } from '../contexts/ChartContext';
+import { MACDConfig, useCandleData, useIndicators, useMainChart } from '../contexts/ChartContext';
 import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData } from '../utils/analysis';
 import { ChartConfigPopup } from './ChartConfigPopup';
 import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
@@ -22,7 +22,7 @@ export function MACDChart({ id }: MACDChartProps) {
     const [configOpen, setConfigOpen] = useState(false);
     const cogRef = useRef<HTMLButtonElement>(null);
 
-    const { syncingRef } = useChartConfig();
+    const { syncingRef } = useMainChart();
     const data = useCandleData();
     const { chart: mainChart, series: mainSeries } = useMainChart();
     const { getIndicator, updateIndicator, removeIndicator } = useIndicators();

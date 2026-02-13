@@ -1,10 +1,10 @@
-import { useIndicators, useOverlays } from '@/contexts/ChartContext';
+import { useIndicators, useOverlayConfigs } from '@/contexts/ChartContext';
 import { MACDTechnicalSignals } from './MACDTechnicalSignals';
 import { MovingAverageSignal } from './MovingAverageSignal';
 
 export function TechnicalSignals() {
     const { indicators } = useIndicators();
-    const { overlays } = useOverlays();
+    const { overlays } = useOverlayConfigs();
 
     const macdIndicators = indicators.filter(i => i.type === 'macd');
     const maOverlays = overlays.filter(o => (o.type === 'sma' || o.type === 'ema') && o.visible);

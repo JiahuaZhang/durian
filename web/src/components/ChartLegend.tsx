@@ -1,4 +1,4 @@
-import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "@/contexts/ChartContext";
+import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlayConfigs } from "@/contexts/ChartContext";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
@@ -52,7 +52,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
     const cogRef = useRef<HTMLButtonElement>(null);
     
     // Use context directly - no prop drilling
-    const { toggleOverlay, removeOverlay, updateOverlayConfig } = useOverlays();
+    const { toggleOverlay, removeOverlay, updateOverlayConfig } = useOverlayConfigs();
     
     const value = getOverlayValueFromLegend(overlay.type, overlayLegend);
 
@@ -301,7 +301,7 @@ function MASignalsPanel({ config, onUpdate }: MASignalsPanelProps) {
 
 export function ChartLegend() {
     const { mainLegend: legend, overlayLegends } = useLegend();
-    const { overlays } = useOverlays();
+    const { overlays } = useOverlayConfigs();
     
     if (!legend && overlays.length === 0) return null;
 
