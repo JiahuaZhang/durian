@@ -2,8 +2,8 @@ import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, Lin
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { AuxiliaryChart } from './AuxiliaryChart';
-import { ChartProvider, type CandleData, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './context/ChartContext';
-import type { SMAConfig, EMAConfig } from './plugin/moving-average/ma';
+import { ChartProvider, type CandleData, useCandleData, useChart, useIndicators, useLegend, useOverlays, EMAConfig } from './context/ChartContext';
+import type { SMAConfig } from './plugin/moving-average/ma';
 import { CandleDataProvider } from './context/ChartDataContext';
 import { ChartLegend } from './ChartLegend';
 import { buildMACrossMarkers } from './plugin/moving-average/ma';

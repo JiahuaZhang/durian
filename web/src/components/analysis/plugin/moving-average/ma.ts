@@ -1,6 +1,6 @@
 import { createChart, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
 import { EMA, SMA } from 'technicalindicators';
-import type { CandleData, EMAConfig, OverlayIndicator } from '../../context/ChartContext';
+import type { CandleData, OverlayIndicator } from '../../context/ChartContext';
 import { findMACrosses } from './MovingAverageSignal';
 
 export type SMAConfig = {
@@ -10,6 +10,15 @@ export type SMAConfig = {
     showCrossSignals: boolean;
     bullishColor: string;
     bearishColor: string
+};
+
+export type EMAConfig = {
+    period: number;
+    color: string;
+    lineWidth: number;
+    showCrossSignals: boolean;
+    bullishColor: string;
+    bearishColor: string;
 };
 
 // ── Default config ───────────────────────────────────────────────────────
