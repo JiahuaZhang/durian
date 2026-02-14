@@ -1,12 +1,12 @@
 import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, LineData, Time } from 'lightweight-charts';
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
-import type { CandleData, EMAConfig, SMAConfig } from '../contexts/ChartContext';
-import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from '../contexts/ChartContext';
-import { CandleDataProvider } from '../contexts/ChartDataContext';
 import { AuxiliaryChart } from './AuxiliaryChart';
+import type { CandleData, EMAConfig, SMAConfig } from './ChartContext';
+import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './ChartContext';
+import { CandleDataProvider } from './ChartDataContext';
 import { ChartLegend } from './ChartLegend';
-import { findMACrosses } from './MovingAverageSignal';
+import { findMACrosses } from './plugin/moving-average/MovingAverageSignal';
 import { TechnicalSignals } from './TechnicalSignals';
 
 type AnalysisChartProps = {

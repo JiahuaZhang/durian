@@ -1,7 +1,7 @@
-import { useIndicators, useOverlays } from '@/contexts/ChartContext';
+import { useIndicators, useOverlays } from './ChartContext';
 import { useMemo } from 'react';
-import { MACDTechnicalSignals } from './MACDTechnicalSignals';
-import { MovingAverageSignal } from './MovingAverageSignal';
+import { MACDTechnicalSignals } from './plugin/macd/MACDTechnicalSignals';
+import { MovingAverageSignal } from './plugin/moving-average/MovingAverageSignal';
 
 export function TechnicalSignals() {
     const { indicators } = useIndicators();

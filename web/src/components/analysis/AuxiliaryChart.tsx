@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useIndicators } from '../contexts/ChartContext';
-import { MACDChart } from './MACDChart';
+import { useIndicators } from './ChartContext';
+import { MACDChart } from './plugin/macd/MACDChart';
 
 export function AuxiliaryChart() {
     const { indicators } = useIndicators();

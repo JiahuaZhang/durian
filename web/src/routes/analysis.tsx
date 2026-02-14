@@ -1,6 +1,6 @@
+import { AnalysisChart } from '@/components/analysis/AnalysisChart'
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleAlert } from 'lucide-react'
-import { AnalysisChart } from '../components/AnalysisChart'
 import { SymbolSearch } from '../components/SymbolSearch'
 import { fetchYahooData } from '../data/yahoo'
 
