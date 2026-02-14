@@ -1,7 +1,7 @@
 import { createChart, ISeriesApi } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { defaultMACDConfig } from '../plugin/macd/macd';
-import { computeMAData, createMASeries, getDefaultMAConfig } from '../plugin/moving-average/ma';
+import { computeMAData, createMASeries, getDefaultMAConfig, type SMAConfig } from '../plugin/moving-average/ma';
 import { computeVolumeData, createVolumeSeries, defaultVolumeConfig } from '../plugin/volume/volume';
 import { useCandleData, type CandleData } from './ChartDataContext';
 
@@ -18,17 +18,6 @@ export type IndicatorType = 'macd' | 'rsi';
 export type VolumeConfig = {
     upColor: string;
     downColor: string;
-};
-
-export type SMAConfig = {
-    period: number;
-    color: string;
-    lineWidth: number;
-    showCrossSignals: boolean;
-    bullishColor: string;
-    bearishColor: string;
-    bullishTextColor: string;
-    bearishTextColor: string;
 };
 
 export type EMAConfig = {

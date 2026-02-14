@@ -1,21 +1,27 @@
 import { createChart, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
 import { EMA, SMA } from 'technicalindicators';
-import type { CandleData, OverlayIndicator } from '../../context/ChartContext';
-
-// Re-export MA config types for convenience
-export type { EMAConfig, SMAConfig } from '../../context/ChartContext';
-
-import type { EMAConfig, SMAConfig } from '../../context/ChartContext';
+import type { CandleData, EMAConfig, OverlayIndicator } from '../../context/ChartContext';
 import { findMACrosses } from './MovingAverageSignal';
+
+export type SMAConfig = {
+    period: number;
+    color: string;
+    lineWidth: number;
+    showCrossSignals: boolean;
+    bullishColor: string;
+    bearishColor: string;
+    bullishTextColor: string;
+    bearishTextColor: string;
+};
 
 // ── Default config ───────────────────────────────────────────────────────
 
 export function getDefaultMAConfig(type: 'sma' | 'ema'): SMAConfig | EMAConfig {
     return {
-        period: 20,
+        period: 200,
         color: type === 'sma' ? '#2962FF' : '#FF6D00',
         lineWidth: 1,
-        showCrossSignals: false,
+        showCrossSignals: true,
         bullishColor: '#26A69A',
         bearishColor: '#EF5350',
         bullishTextColor: '#1B5E20',
@@ -78,10 +84,9 @@ export function buildMACrossMarkers(overlays: OverlayIndicator[], data: CandleDa
             allMarkers.push({
                 time: cross.date,
                 position: isBull ? 'belowBar' : 'aboveBar',
-                color: isBull ? config.bullishColor : config.bearishColor,
+                color: isBull ? config.bullishTextColor : config.bearishTextColor,
                 shape: isBull ? 'arrowUp' : 'arrowDown',
                 text: `${isBull ? 'Bull' : 'Bear'} ${label}`,
-                textColor: isBull ? config.bullishTextColor : config.bearishTextColor,
             });
         });
     });
