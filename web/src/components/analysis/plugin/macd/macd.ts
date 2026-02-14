@@ -1,30 +1,38 @@
 import { MACD } from 'technicalindicators'
 import type { CandleData } from '../../context/ChartContext'
+import type { MetaField } from '../meta'
+import { getDefaultConfig, type DeriveConfig } from '../meta'
 
-// Re-export for convenience
-export type { MACDConfig } from '../../context/ChartContext'
+// ── Meta definition (single source of truth) ─────────────────────────────
 
-import type { MACDConfig } from '../../context/ChartContext'
+export const MACDMeta = [
+    // Inputs
+    { key: 'fastPeriod', label: 'Fast Period', group: 'Inputs', type: 'number', default: 12, min: 2, max: 50 },
+    { key: 'slowPeriod', label: 'Slow Period', group: 'Inputs', type: 'number', default: 26, min: 2, max: 100 },
+    { key: 'signalPeriod', label: 'Signal Period', group: 'Inputs', type: 'number', default: 9, min: 2, max: 50 },
+    // Style
+    { key: 'macdColor', label: 'MACD Line', group: 'Style', type: 'color', default: '#2962FF' },
+    { key: 'signalColor', label: 'Signal Line', group: 'Style', type: 'color', default: '#FF6D00' },
+    { key: 'histogramUpColor', label: 'Histogram Up', group: 'Style', type: 'color', default: '#26a69a' },
+    { key: 'histogramDownColor', label: 'Histogram Down', group: 'Style', type: 'color', default: '#ef5350' },
+    // Divergence
+    { key: 'showDivergences', label: 'Show Divergences', group: 'Divergence', type: 'boolean', default: true },
+    { key: 'divergenceBullColor', label: 'Bull Color', group: 'Divergence', type: 'color', default: '#26A69A' },
+    { key: 'divergenceBearColor', label: 'Bear Color', group: 'Divergence', type: 'color', default: '#EF5350' },
+    { key: 'pivotLookbackLeft', label: 'Lookback Left', group: 'Divergence', type: 'number', default: 20, min: 1, max: 20 },
+    { key: 'pivotLookbackRight', label: 'Lookback Right', group: 'Divergence', type: 'number', default: 0, min: 0, max: 20 },
+    { key: 'rangeMin', label: 'Range Min', group: 'Divergence', type: 'number', default: 5, min: 1, max: 100 },
+    { key: 'rangeMax', label: 'Range Max', group: 'Divergence', type: 'number', default: 60, min: 10, max: 200 },
+    { key: 'dontTouchZero', label: "Don't Touch Zero", group: 'Divergence', type: 'boolean', default: true },
+] as const satisfies readonly MetaField[];
+
+// ── Derived config type ──────────────────────────────────────────────────
+
+export type MACDConfig = DeriveConfig<typeof MACDMeta>;
 
 // ── Default config ───────────────────────────────────────────────────────
 
-export const defaultMACDConfig: MACDConfig = {
-    fastPeriod: 12,
-    slowPeriod: 26,
-    signalPeriod: 9,
-    macdColor: '#2962FF',
-    signalColor: '#FF6D00',
-    histogramUpColor: '#26a69a',
-    histogramDownColor: '#ef5350',
-    showDivergences: true,
-    divergenceBullColor: '#26A69A',
-    divergenceBearColor: '#EF5350',
-    pivotLookbackLeft: 20,
-    pivotLookbackRight: 0,
-    rangeMin: 5,
-    rangeMax: 60,
-    dontTouchZero: true,
-}
+export const defaultMACDConfig: MACDConfig = getDefaultConfig(MACDMeta);
 
 export type MACDData = {
     time: string

@@ -3,20 +3,8 @@ import { EMA, SMA } from 'technicalindicators';
 import type { CandleData, OverlayIndicator } from '../../context/ChartContext';
 import { findMACrosses } from './MovingAverageSignal';
 
-// ── Meta field types ─────────────────────────────────────────────────────
-
-type MetaFieldType = 'number' | 'color' | 'boolean' | 'select';
-
-type MetaField = {
-    key: string;
-    label: string;
-    group: 'Inputs' | 'Style';
-    type: MetaFieldType;
-    default: number | string | boolean;
-    options?: readonly { value: number | string; label: string }[];
-    min?: number;
-    max?: number;
-};
+import type { MetaField } from '../meta';
+import { getDefaultConfig, type DeriveConfig } from '../meta';
 
 // ── Meta definition (single source of truth) ─────────────────────────────
 
@@ -34,16 +22,12 @@ export const MAMeta = [
 
 // ── Derived config type ──────────────────────────────────────────────────
 
-type MetaTypeMap = { number: number; color: string; boolean: boolean; select: number };
-
-export type MAConfig = {
-    [F in (typeof MAMeta)[number]as F['key']]: MetaTypeMap[F['type']];
-};
+export type MAConfig = DeriveConfig<typeof MAMeta>;
 
 // ── Default config ───────────────────────────────────────────────────────
 
 export function getDefaultMAConfig(type: 'sma' | 'ema'): MAConfig {
-    const config = Object.fromEntries(MAMeta.map(f => [f.key, f.default])) as MAConfig;
+    const config = getDefaultConfig(MAMeta);
     if (type === 'ema') {
         config.color = '#FF6D00';
     }

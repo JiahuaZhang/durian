@@ -1,17 +1,22 @@
 import { createChart, HistogramSeries } from 'lightweight-charts';
 import type { CandleData } from '../../context/ChartContext';
+import type { MetaField } from '../meta';
+import { getDefaultConfig, type DeriveConfig } from '../meta';
 
-// Re-export for convenience
-export type { VolumeConfig } from '../../context/ChartContext';
+// ── Meta definition (single source of truth) ─────────────────────────────
 
-import type { VolumeConfig } from '../../context/ChartContext';
+export const VolumeMeta = [
+    { key: 'upColor', label: 'Up Color', group: 'Style', type: 'color', default: '#26a69a' },
+    { key: 'downColor', label: 'Down Color', group: 'Style', type: 'color', default: '#ef5350' },
+] as const satisfies readonly MetaField[];
+
+// ── Derived config type ──────────────────────────────────────────────────
+
+export type VolumeConfig = DeriveConfig<typeof VolumeMeta>;
 
 // ── Default config ───────────────────────────────────────────────────────
 
-export const defaultVolumeConfig: VolumeConfig = {
-    upColor: '#26a69a',
-    downColor: '#ef5350',
-};
+export const defaultVolumeConfig: VolumeConfig = getDefaultConfig(VolumeMeta);
 
 // ── Data computation ─────────────────────────────────────────────────────
 

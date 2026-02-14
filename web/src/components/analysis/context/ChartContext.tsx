@@ -1,8 +1,8 @@
 import { createChart, ISeriesApi } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
-import { defaultMACDConfig } from '../plugin/macd/macd';
+import { defaultMACDConfig, type MACDConfig } from '../plugin/macd/macd';
 import { computeMAData, createMASeries, type MAConfig, getDefaultMAConfig } from '../plugin/moving-average/ma';
-import { computeVolumeData, createVolumeSeries, defaultVolumeConfig } from '../plugin/volume/volume';
+import { computeVolumeData, createVolumeSeries, defaultVolumeConfig, type VolumeConfig } from '../plugin/volume/volume';
 import { useCandleData } from './ChartDataContext';
 
 // Re-export CandleData types
@@ -15,28 +15,9 @@ export { useCandleData, type CandleData } from './ChartDataContext';
 export type OverlayType = 'volume' | 'sma' | 'ema';
 export type IndicatorType = 'macd' | 'rsi';
 
-export type VolumeConfig = {
-    upColor: string;
-    downColor: string;
-};
-
-export type MACDConfig = {
-    fastPeriod: number;
-    slowPeriod: number;
-    signalPeriod: number;
-    macdColor: string;
-    signalColor: string;
-    histogramUpColor: string;
-    histogramDownColor: string;
-    showDivergences: boolean;
-    divergenceBullColor: string;
-    divergenceBearColor: string;
-    pivotLookbackLeft: number;
-    pivotLookbackRight: number;
-    rangeMin: number;
-    rangeMax: number;
-    dontTouchZero: boolean;
-};
+// Re-export plugin config types for convenience
+export type { VolumeConfig } from '../plugin/volume/volume';
+export type { MACDConfig } from '../plugin/macd/macd';
 
 export type RSIConfig = {
     period: number;
