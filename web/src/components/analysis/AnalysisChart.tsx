@@ -2,11 +2,11 @@ import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, Lin
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { AuxiliaryChart } from './AuxiliaryChart';
-import type { CandleData, EMAConfig, SMAConfig } from './context/ChartContext';
-import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './context/ChartContext';
+import { ChartProvider, type CandleData, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './context/ChartContext';
+import type { SMAConfig, EMAConfig } from './plugin/moving-average/ma';
 import { CandleDataProvider } from './context/ChartDataContext';
 import { ChartLegend } from './ChartLegend';
-import { findMACrosses } from './plugin/moving-average/MovingAverageSignal';
+import { buildMACrossMarkers } from './plugin/moving-average/ma';
 import { TechnicalSignals } from './TechnicalSignals';
 
 type AnalysisChartProps = {
@@ -127,27 +127,7 @@ function AnalysisChartInner() {
         const candleSeries = candleSeriesRef.current
         if (!candleSeries) return;
 
-        const allMarkers: { time: string; position: 'belowBar' | 'aboveBar'; color: string; shape: 'arrowUp' | 'arrowDown'; text: string; textColor?: string }[] = [];
-
-        maOverlaysWithSignals.forEach(overlay => {
-            const crosses = findMACrosses(data, overlay.data);
-            const config = overlay.config as SMAConfig | EMAConfig;
-            const label = overlay.type === 'sma' ? `SMA${config.period}` : `EMA${config.period}`;
-
-            crosses.forEach(cross => {
-                const isBull = cross.type === 'bullish';
-                allMarkers.push({
-                    time: cross.date,
-                    position: isBull ? 'belowBar' : 'aboveBar',
-                    color: isBull ? config.bullishColor : config.bearishColor,
-                    shape: isBull ? 'arrowUp' : 'arrowDown',
-                    text: `${isBull ? 'Bull' : 'Bear'} ${label}`,
-                    textColor: isBull ? config.bullishTextColor : config.bearishTextColor,
-                });
-            });
-        });
-
-        allMarkers.sort((a, b) => a.time.localeCompare(b.time));
+        const allMarkers = buildMACrossMarkers(maOverlaysWithSignals, data);
 
         const plugin = createSeriesMarkers(candleSeries, allMarkers as any);
 

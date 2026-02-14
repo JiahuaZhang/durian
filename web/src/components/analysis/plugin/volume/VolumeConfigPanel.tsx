@@ -1,4 +1,4 @@
-import type { VolumeConfig } from '../../context/ChartContext';
+import type { VolumeConfig } from './volume';
 
 type VolumeStylePanelProps = {
     config: VolumeConfig;

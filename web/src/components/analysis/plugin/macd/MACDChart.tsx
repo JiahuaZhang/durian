@@ -1,7 +1,8 @@
 import { createChart, createSeriesMarkers, HistogramSeries, ISeriesApi, LineSeries } from 'lightweight-charts';
 import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MACDConfig, useCandleData, useChart, useIndicators } from '../../context/ChartContext';
+import { useCandleData, useChart, useIndicators } from '../../context/ChartContext';
+import { MACDConfig } from './macd';
 import { ChartConfigPopup } from '../../ChartConfigPopup';
 import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData } from './macd';
 import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';

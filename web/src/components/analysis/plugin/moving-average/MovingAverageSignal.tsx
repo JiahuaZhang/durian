@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { CandleData, EMAConfig, OverlayIndicator, SMAConfig, useCandleData } from '../../context/ChartContext';
+import { CandleData, OverlayIndicator, useCandleData } from '../../context/ChartContext';
+import type { EMAConfig, SMAConfig } from './ma';
 
 export type MACross = {
     date: string;

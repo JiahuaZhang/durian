@@ -1,4 +1,4 @@
-import type { EMAConfig, SMAConfig } from '../../context/ChartContext';
+import type { EMAConfig, SMAConfig } from './ma';
 
 // MA Inputs panel (period)
 type MAInputsPanelProps = {

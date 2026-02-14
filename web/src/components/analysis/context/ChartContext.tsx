@@ -1,6 +1,8 @@
-import { createChart, HistogramSeries, ISeriesApi, LineSeries, Time } from 'lightweight-charts';
+import { createChart, ISeriesApi } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
-import { EMA, SMA } from 'technicalindicators';
+import { defaultMACDConfig } from '../plugin/macd/macd';
+import { computeMAData, createMASeries, getDefaultMAConfig } from '../plugin/moving-average/ma';
+import { computeVolumeData, createVolumeSeries, defaultVolumeConfig } from '../plugin/volume/volume';
 import { useCandleData, type CandleData } from './ChartDataContext';
 
 // Re-export CandleData types
@@ -113,7 +115,7 @@ const initialState: ChartState = {
             id: 'volume-default',
             type: 'volume',
             visible: true,
-            config: { upColor: '#26a69a', downColor: '#ef5350' },
+            config: { ...defaultVolumeConfig },
             data: [],
         },
     },
@@ -219,27 +221,7 @@ function chartReducer(state: ChartState, action: ChartAction): ChartState {
     }
 }
 
-// ============================================================================
-// Defaults
-// ============================================================================
 
-const defaultMACDConfig: MACDConfig = {
-    fastPeriod: 12,
-    slowPeriod: 26,
-    signalPeriod: 9,
-    macdColor: '#2962FF',
-    signalColor: '#FF6D00',
-    histogramUpColor: '#26a69a',
-    histogramDownColor: '#ef5350',
-    showDivergences: true,
-    divergenceBullColor: '#26A69A',
-    divergenceBearColor: '#EF5350',
-    pivotLookbackLeft: 20,
-    pivotLookbackRight: 0,
-    rangeMin: 5,
-    rangeMax: 60,
-    dontTouchZero: true,
-};
 
 // ============================================================================
 // Context
@@ -275,28 +257,7 @@ const ChartContext = createContext<ChartContextType | null>(null);
 let idCounter = 0;
 const generateId = (prefix: string) => `${prefix}-${++idCounter}`;
 
-// Compute data helpers
-function computeVolumeData(candleData: CandleData[], config: VolumeConfig) {
-    return candleData.map(d => ({
-        time: d.time,
-        value: d.volume,
-        color: d.close >= d.open ? config.upColor : config.downColor,
-    }));
-}
 
-function computeMAData(candleData: CandleData[], type: 'sma' | 'ema', config: SMAConfig | EMAConfig) {
-    const closePrices = candleData.map(d => d.close);
-    const calculatedValues = type === 'sma'
-        ? SMA.calculate({ period: config.period, values: closePrices })
-        : EMA.calculate({ period: config.period, values: closePrices });
-
-    if (!calculatedValues.length) return [];
-
-    return candleData.slice(config.period - 1).map((d, i) => ({
-        time: d.time as unknown as Time,
-        value: calculatedValues[i],
-    }));
-}
 
 export function ChartProvider({ children }: { children: ReactNode }) {
     const [state, dispatch] = useReducer(chartReducer, initialState);
@@ -323,11 +284,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         Object.values(currentState.overlays).forEach(overlay => {
             if (overlay.type === 'volume') {
                 const config = overlay.config as VolumeConfig;
-                const volumeSeries = chart.addSeries(HistogramSeries, {
-                    priceScaleId: '',
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                });
+                const volumeSeries = createVolumeSeries(chart);
                 const data = computeVolumeData(candleData, config);
                 volumeSeries.setData(data as any);
                 overlaySeriesRef.current.set(overlay.id, volumeSeries);
@@ -359,15 +316,11 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         const id = generateId(type);
 
         if (type === 'volume') {
-            const config: VolumeConfig = { upColor: '#26a69a', downColor: '#ef5350' };
+            const config: VolumeConfig = { ...defaultVolumeConfig };
             let data: any[] = [];
 
             if (chart) {
-                const volumeSeries = chart.addSeries(HistogramSeries, {
-                    priceScaleId: '',
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                });
+                const volumeSeries = createVolumeSeries(chart);
                 data = computeVolumeData(candleData, config);
                 volumeSeries.setData(data as any);
                 overlaySeriesRef.current.set(id, volumeSeries);
@@ -384,26 +337,11 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         }
 
         if (type === 'sma' || type === 'ema') {
-            const config: SMAConfig | EMAConfig = {
-                period: 20,
-                color: type === 'sma' ? '#2962FF' : '#FF6D00',
-                lineWidth: 1,
-                showCrossSignals: false,
-                bullishColor: '#26A69A',
-                bearishColor: '#EF5350',
-                bullishTextColor: '#1B5E20',
-                bearishTextColor: '#B71C1C',
-            };
+            const config = getDefaultMAConfig(type);
             let data: any[] = [];
 
             if (chart) {
-                const maSeries = chart.addSeries(LineSeries, {
-                    color: config.color,
-                    lineWidth: config.lineWidth as 1 | 2 | 3 | 4,
-                    lastValueVisible: false,
-                    priceLineVisible: false,
-                    crosshairMarkerVisible: true,
-                });
+                const maSeries = createMASeries(chart, config);
                 data = computeMAData(candleData, type, config);
                 maSeries.setData(data);
                 overlaySeriesRef.current.set(id, maSeries);
