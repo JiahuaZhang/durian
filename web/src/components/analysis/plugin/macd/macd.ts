@@ -1,5 +1,30 @@
-import { CandleData } from '../../context/ChartContext'
 import { MACD } from 'technicalindicators'
+import type { CandleData } from '../../context/ChartContext'
+
+// Re-export for convenience
+export type { MACDConfig } from '../../context/ChartContext'
+
+import type { MACDConfig } from '../../context/ChartContext'
+
+// ── Default config ───────────────────────────────────────────────────────
+
+export const defaultMACDConfig: MACDConfig = {
+    fastPeriod: 12,
+    slowPeriod: 26,
+    signalPeriod: 9,
+    macdColor: '#2962FF',
+    signalColor: '#FF6D00',
+    histogramUpColor: '#26a69a',
+    histogramDownColor: '#ef5350',
+    showDivergences: true,
+    divergenceBullColor: '#26A69A',
+    divergenceBearColor: '#EF5350',
+    pivotLookbackLeft: 20,
+    pivotLookbackRight: 0,
+    rangeMin: 5,
+    rangeMax: 60,
+    dontTouchZero: true,
+}
 
 export type MACDData = {
     time: string
