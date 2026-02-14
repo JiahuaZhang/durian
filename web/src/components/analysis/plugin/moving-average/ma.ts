@@ -3,40 +3,56 @@ import { EMA, SMA } from 'technicalindicators';
 import type { CandleData, OverlayIndicator } from '../../context/ChartContext';
 import { findMACrosses } from './MovingAverageSignal';
 
-export type SMAConfig = {
-    period: number;
-    color: string;
-    lineWidth: number;
-    showCrossSignals: boolean;
-    bullishColor: string;
-    bearishColor: string
+// ── Meta field types ─────────────────────────────────────────────────────
+
+type MetaFieldType = 'number' | 'color' | 'boolean' | 'select';
+
+type MetaField = {
+    key: string;
+    label: string;
+    group: 'Inputs' | 'Style';
+    type: MetaFieldType;
+    default: number | string | boolean;
+    options?: readonly { value: number | string; label: string }[];
+    min?: number;
+    max?: number;
 };
 
-export type EMAConfig = {
-    period: number;
-    color: string;
-    lineWidth: number;
-    showCrossSignals: boolean;
-    bullishColor: string;
-    bearishColor: string;
+// ── Meta definition (single source of truth) ─────────────────────────────
+
+export const MAMeta = [
+    { key: 'period', label: 'Period', group: 'Inputs', type: 'number', default: 200, min: 1, max: 500 },
+    { key: 'showCrossSignals', label: 'Show Cross Signals', group: 'Inputs', type: 'boolean', default: true },
+    { key: 'color', label: 'Color', group: 'Style', type: 'color', default: '#2962FF' },
+    {
+        key: 'lineWidth', label: 'Line Width', group: 'Style', type: 'select', default: 1,
+        options: [{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }] as const
+    },
+    { key: 'bullishColor', label: 'Bullish Color', group: 'Style', type: 'color', default: '#2b7fff' },
+    { key: 'bearishColor', label: 'Bearish Color', group: 'Style', type: 'color', default: '#e7000b' },
+] as const satisfies readonly MetaField[];
+
+// ── Derived config type ──────────────────────────────────────────────────
+
+type MetaTypeMap = { number: number; color: string; boolean: boolean; select: number };
+
+export type MAConfig = {
+    [F in (typeof MAMeta)[number]as F['key']]: MetaTypeMap[F['type']];
 };
 
 // ── Default config ───────────────────────────────────────────────────────
 
-export function getDefaultMAConfig(type: 'sma' | 'ema'): SMAConfig | EMAConfig {
-    return {
-        period: 200,
-        color: type === 'sma' ? '#2962FF' : '#FF6D00',
-        lineWidth: 1,
-        showCrossSignals: true,
-        bullishColor: '#2b7fff',
-        bearishColor: '#e7000b'
-    };
+export function getDefaultMAConfig(type: 'sma' | 'ema'): MAConfig {
+    const config = Object.fromEntries(MAMeta.map(f => [f.key, f.default])) as MAConfig;
+    if (type === 'ema') {
+        config.color = '#FF6D00';
+    }
+    return config;
 }
 
 // ── Data computation ─────────────────────────────────────────────────────
 
-export function computeMAData(candleData: CandleData[], type: 'sma' | 'ema', config: SMAConfig | EMAConfig) {
+export function computeMAData(candleData: CandleData[], type: 'sma' | 'ema', config: MAConfig) {
     const closePrices = candleData.map(d => d.close);
     const calculatedValues = type === 'sma'
         ? SMA.calculate({ period: config.period, values: closePrices })
@@ -54,7 +70,7 @@ export function computeMAData(candleData: CandleData[], type: 'sma' | 'ema', con
 
 export function createMASeries(
     chart: ReturnType<typeof createChart>,
-    config: SMAConfig | EMAConfig,
+    config: MAConfig,
 ): ISeriesApi<'Line'> {
     return chart.addSeries(LineSeries, {
         color: config.color,
@@ -81,7 +97,7 @@ export function buildMACrossMarkers(overlays: OverlayIndicator[], data: CandleDa
 
     overlays.forEach(overlay => {
         const crosses = findMACrosses(data, overlay.data);
-        const config = overlay.config as SMAConfig | EMAConfig;
+        const config = overlay.config as MAConfig;
         const label = overlay.type === 'sma' ? `SMA${config.period}` : `EMA${config.period}`;
 
         crosses.forEach(cross => {

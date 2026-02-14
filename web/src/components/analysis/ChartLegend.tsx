@@ -1,4 +1,5 @@
-import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
+import { type EMALegend, type MainLegend, type OverlayIndicator, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
+import type { MAConfig } from "./plugin/moving-average/ma";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
@@ -140,7 +141,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                             label: 'Inputs',
                             content: (
                                 <MAInputsPanel
-                                    config={overlay.config as SMAConfig | EMAConfig}
+                                    config={overlay.config as MAConfig}
                                     onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
                                 />
                             )
@@ -150,7 +151,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                             label: 'Style',
                             content: (
                                 <MAStylePanel
-                                    config={overlay.config as SMAConfig | EMAConfig}
+                                    config={overlay.config as MAConfig}
                                     onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
                                 />
                             )

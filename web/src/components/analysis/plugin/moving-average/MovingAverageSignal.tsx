@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CandleData, OverlayIndicator, useCandleData } from '../../context/ChartContext';
-import type { EMAConfig, SMAConfig } from './ma';
+import type { MAConfig } from './ma';
 
 export type MACross = {
     date: string;
@@ -56,7 +56,7 @@ export function MovingAverageSignal({ overlay }: MovingAverageSignalProps) {
     const [filterOneYear, setFilterOneYear] = useState(true);
 
     const data = useCandleData();
-    const config = overlay.config as SMAConfig | EMAConfig;
+    const config = overlay.config as MAConfig;
     const maData: { time: unknown; value: number }[] = overlay.data ?? [];
 
     const label = overlay.type === 'sma' ? 'Simple' : 'Exponential';

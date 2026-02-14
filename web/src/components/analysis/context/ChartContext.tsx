@@ -1,7 +1,7 @@
 import { createChart, ISeriesApi } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { defaultMACDConfig } from '../plugin/macd/macd';
-import { computeMAData, createMASeries, EMAConfig, getDefaultMAConfig, type SMAConfig } from '../plugin/moving-average/ma';
+import { computeMAData, createMASeries, type MAConfig, getDefaultMAConfig } from '../plugin/moving-average/ma';
 import { computeVolumeData, createVolumeSeries, defaultVolumeConfig } from '../plugin/volume/volume';
 import { useCandleData } from './ChartDataContext';
 
@@ -49,7 +49,7 @@ export type OverlayIndicator = {
     id: string;
     type: OverlayType;
     visible: boolean;
-    config: VolumeConfig | SMAConfig | EMAConfig;
+    config: VolumeConfig | MAConfig;
     data: any[];
 };
 
@@ -109,7 +109,7 @@ const initialState: ChartState = {
 type ChartAction =
     | { type: 'OVERLAY_ADDED'; overlay: OverlayIndicator }
     | { type: 'OVERLAY_REMOVED'; id: string }
-    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | SMAConfig | EMAConfig; data: any[] }
+    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | MAConfig; data: any[] }
     | { type: 'OVERLAY_TOGGLED'; id: string; visible: boolean }
     | { type: 'INDICATOR_ADDED'; indicator: SubIndicator }
     | { type: 'INDICATOR_REMOVED'; id: string }
@@ -218,7 +218,7 @@ type ChartContextType = {
         destroyChart: () => void;
         addOverlay: (type: OverlayType) => string;
         removeOverlay: (id: string) => void;
-        updateOverlayConfig: <T extends VolumeConfig | SMAConfig | EMAConfig>(id: string, configUpdates: Partial<T>) => void;
+        updateOverlayConfig: <T extends VolumeConfig | MAConfig>(id: string, configUpdates: Partial<T>) => void;
         toggleOverlay: (id: string) => void;
         addIndicator: (type: IndicatorType) => string;
         removeIndicator: (id: string) => void;
@@ -355,7 +355,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'OVERLAY_REMOVED', id });
     }, []);
 
-    const updateOverlayConfig = useCallback(<T extends VolumeConfig | SMAConfig | EMAConfig>(id: string, configUpdates: Partial<T>) => {
+    const updateOverlayConfig = useCallback(<T extends VolumeConfig | MAConfig>(id: string, configUpdates: Partial<T>) => {
         const currentState = stateRef.current;
         const overlay = currentState.overlays[id];
         if (!overlay) return;
@@ -370,7 +370,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         }
 
         if (overlay.type === 'sma' || overlay.type === 'ema') {
-            const maConfig = newConfig as SMAConfig | EMAConfig;
+            const maConfig = newConfig as MAConfig;
 
             // Apply style options
             if (series && ('color' in configUpdates || 'lineWidth' in configUpdates)) {
