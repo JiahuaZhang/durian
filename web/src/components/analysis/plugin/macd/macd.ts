@@ -1,4 +1,4 @@
-import { CandleData } from '../../ChartContext'
+import { CandleData } from '../../context/ChartContext'
 import { MACD } from 'technicalindicators'
 
 export type MACDData = {

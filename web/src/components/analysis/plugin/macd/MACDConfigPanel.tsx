@@ -1,4 +1,4 @@
-import { MACDConfig, useIndicators } from '../../ChartContext';
+import { MACDConfig, useIndicators } from '../../context/ChartContext';
 
 type NumberInputProps = {
     label: string;

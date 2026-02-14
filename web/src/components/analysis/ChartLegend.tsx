@@ -1,4 +1,4 @@
-import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./ChartContext";
+import { type EMAConfig, type EMALegend, type MainLegend, type OverlayIndicator, type SMAConfig, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";

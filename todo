@@ -1,8 +1,7 @@
-legend data:
-react-context.
-main -> legend;
-overlay -> legend
-ohlc, sma, ema, volume
+moving average idea:
+test with 200, 100, 50, 20, to see how many opportunities are available. (1 trade per week? or even 2 weeks? or 1 month?) check # of crosses.
+
+sma: 20, 50, 100, 200
 
 https://x.com/balder13946731/status/2017679600680374381?s=46&t=BEf6IIW1eXhjoIC7a7SW8g
 IV, HV, volatility risk premium VRP, put call ratio, option skew, option volume, open interest

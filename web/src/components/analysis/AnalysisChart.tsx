@@ -2,9 +2,9 @@ import { CandlestickSeries, createChart, createSeriesMarkers, HistogramData, Lin
 import { Settings } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { AuxiliaryChart } from './AuxiliaryChart';
-import type { CandleData, EMAConfig, SMAConfig } from './ChartContext';
-import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './ChartContext';
-import { CandleDataProvider } from './ChartDataContext';
+import type { CandleData, EMAConfig, SMAConfig } from './context/ChartContext';
+import { ChartProvider, useCandleData, useChart, useIndicators, useLegend, useOverlays } from './context/ChartContext';
+import { CandleDataProvider } from './context/ChartDataContext';
 import { ChartLegend } from './ChartLegend';
 import { findMACrosses } from './plugin/moving-average/MovingAverageSignal';
 import { TechnicalSignals } from './TechnicalSignals';
@@ -188,7 +188,7 @@ function AnalysisChartInner() {
                     <div ref={chartContainerRef} un-h='full' />
                 </div>
 
-                <TechnicalSignals />
+                {/* <TechnicalSignals /> */}
             </div>
 
             <AuxiliaryChart />
