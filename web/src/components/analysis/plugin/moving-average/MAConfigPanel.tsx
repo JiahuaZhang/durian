@@ -1,4 +1,5 @@
-import type { EMAConfig, SMAConfig } from './ma';
+import type { EMAConfig } from '../../context/ChartContext';
+import type { SMAConfig } from './ma';
 
 // MA Inputs panel (period)
 type MAInputsPanelProps = {
@@ -88,35 +89,11 @@ export function MAStylePanel({ config, onUpdate }: MAStylePanelProps) {
                 />
             </div>
             <div un-flex="~ items-center justify-between">
-                <label un-text="sm slate-600">Bullish Text</label>
-                <input
-                    type="color"
-                    value={config.bullishTextColor}
-                    onChange={(e) => onUpdate({ bullishTextColor: e.target.value })}
-                    un-w="8"
-                    un-h="8"
-                    un-border="~ slate-200 rounded"
-                    un-cursor="pointer"
-                />
-            </div>
-            <div un-flex="~ items-center justify-between">
                 <label un-text="sm slate-600">Bearish Color</label>
                 <input
                     type="color"
                     value={config.bearishColor}
                     onChange={(e) => onUpdate({ bearishColor: e.target.value })}
-                    un-w="8"
-                    un-h="8"
-                    un-border="~ slate-200 rounded"
-                    un-cursor="pointer"
-                />
-            </div>
-            <div un-flex="~ items-center justify-between">
-                <label un-text="sm slate-600">Bearish Text</label>
-                <input
-                    type="color"
-                    value={config.bearishTextColor}
-                    onChange={(e) => onUpdate({ bearishTextColor: e.target.value })}
                     un-w="8"
                     un-h="8"
                     un-border="~ slate-200 rounded"

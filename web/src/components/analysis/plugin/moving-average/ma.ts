@@ -9,9 +9,7 @@ export type SMAConfig = {
     lineWidth: number;
     showCrossSignals: boolean;
     bullishColor: string;
-    bearishColor: string;
-    bullishTextColor: string;
-    bearishTextColor: string;
+    bearishColor: string
 };
 
 // ── Default config ───────────────────────────────────────────────────────
@@ -22,10 +20,8 @@ export function getDefaultMAConfig(type: 'sma' | 'ema'): SMAConfig | EMAConfig {
         color: type === 'sma' ? '#2962FF' : '#FF6D00',
         lineWidth: 1,
         showCrossSignals: true,
-        bullishColor: '#26A69A',
-        bearishColor: '#EF5350',
-        bullishTextColor: '#1B5E20',
-        bearishTextColor: '#B71C1C',
+        bullishColor: '#2b7fff',
+        bearishColor: '#e7000b'
     };
 }
 
@@ -84,7 +80,7 @@ export function buildMACrossMarkers(overlays: OverlayIndicator[], data: CandleDa
             allMarkers.push({
                 time: cross.date,
                 position: isBull ? 'belowBar' : 'aboveBar',
-                color: isBull ? config.bullishTextColor : config.bearishTextColor,
+                color: isBull ? config.bullishColor : config.bearishColor,
                 shape: isBull ? 'arrowUp' : 'arrowDown',
                 text: `${isBull ? 'Bull' : 'Bear'} ${label}`,
             });

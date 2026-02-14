@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useReducer, useRef, ty
 import { defaultMACDConfig } from '../plugin/macd/macd';
 import { computeMAData, createMASeries, getDefaultMAConfig, type SMAConfig } from '../plugin/moving-average/ma';
 import { computeVolumeData, createVolumeSeries, defaultVolumeConfig } from '../plugin/volume/volume';
-import { useCandleData, type CandleData } from './ChartDataContext';
+import { useCandleData } from './ChartDataContext';
 
 // Re-export CandleData types
 export { useCandleData, type CandleData } from './ChartDataContext';
@@ -27,8 +27,6 @@ export type EMAConfig = {
     showCrossSignals: boolean;
     bullishColor: string;
     bearishColor: string;
-    bullishTextColor: string;
-    bearishTextColor: string;
 };
 
 export type MACDConfig = {
