@@ -2,6 +2,7 @@ import { createChart, ISeriesApi } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { defaultMACDConfig, type MACDConfig } from '../plugin/macd/macd';
 import { computeMAData, createMASeries, type MAConfig, getDefaultMAConfig } from '../plugin/moving-average/ma';
+import { defaultRSIConfig, type RSIConfig } from '../plugin/relative-strength-index/rsi';
 import { computeVolumeData, createVolumeSeries, defaultVolumeConfig, type VolumeConfig } from '../plugin/volume/volume';
 import { useCandleData } from './ChartDataContext';
 
@@ -18,13 +19,7 @@ export type IndicatorType = 'macd' | 'rsi';
 // Re-export plugin config types for convenience
 export type { VolumeConfig } from '../plugin/volume/volume';
 export type { MACDConfig } from '../plugin/macd/macd';
-
-export type RSIConfig = {
-    period: number;
-    overbought: number;
-    oversold: number;
-    color: string;
-};
+export type { RSIConfig } from '../plugin/relative-strength-index/rsi';
 
 export type OverlayIndicator = {
     id: string;
@@ -411,7 +406,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 config = { ...defaultMACDConfig };
                 break;
             case 'rsi':
-                config = { period: 14, overbought: 70, oversold: 30, color: '#7E57C2' };
+                config = { ...defaultRSIConfig };
                 break;
         }
 

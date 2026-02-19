@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useIndicators } from './context/ChartContext';
 import { MACDChart } from './plugin/macd/MACDChart';
+import { RSICharts } from './plugin/relative-strength-index/RSICharts';
 
 export function AuxiliaryChart() {
     const { indicators } = useIndicators();
@@ -14,6 +15,7 @@ export function AuxiliaryChart() {
             {visibleIndicators.map(indicator => (
                 indicator.type === 'macd' && <MACDChart key={indicator.id} id={indicator.id} />
             ))}
+            <RSICharts />
         </div>
     );
 }

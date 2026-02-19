@@ -153,6 +153,9 @@ function AnalysisChartInner() {
                     <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
                     </AddButton>
+                    <AddButton onClick={() => addIndicator('rsi')}>
+                        + RSI
+                    </AddButton>
                 </div>
             </div>
 

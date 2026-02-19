@@ -9,8 +9,8 @@ import { getDefaultConfig, type DeriveConfig } from '../meta';
 // ── Meta definition (single source of truth) ─────────────────────────────
 
 export const MAMeta = [
-    { key: 'period', label: 'Period', group: 'Inputs', type: 'number', default: 200, min: 1, max: 500 },
-    { key: 'showCrossSignals', label: 'Show Cross Signals', group: 'Inputs', type: 'boolean', default: true },
+    { key: 'period', label: 'Period', group: 'Inputs', type: 'number', default: 20, min: 1, max: 500 },
+    { key: 'showCrossSignals', label: 'Show Cross Signals', group: 'Inputs', type: 'boolean', default: false },
     { key: 'color', label: 'Color', group: 'Style', type: 'color', default: '#2962FF' },
     {
         key: 'lineWidth', label: 'Line Width', group: 'Style', type: 'select', default: 1,
