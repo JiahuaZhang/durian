@@ -1,4 +1,4 @@
-import { EMA, RSI, SMA } from 'technicalindicators';
+import { BollingerBands, EMA, RSI, SMA, WEMA, WMA } from 'technicalindicators';
 import type { CandleData } from '../../context/ChartContext';
 import type { MetaField } from '../meta';
 import { getDefaultConfig, type DeriveConfig } from '../meta';
@@ -42,11 +42,30 @@ export const RSIMeta = [
             { value: RSISource.OHLC4, label: 'OHLC4' },
         ] as const,
     },
-    // Levels
-    { key: 'overbought', label: 'Overbought', group: 'Levels', type: 'number', default: 70, min: 1, max: 100 },
-    { key: 'middle', label: 'Middle', group: 'Levels', type: 'number', default: 50, min: 1, max: 100 },
-    { key: 'oversold', label: 'Oversold', group: 'Levels', type: 'number', default: 30, min: 1, max: 100 },
-    { key: 'showMiddleLine', label: 'Show Middle', group: 'Levels', type: 'boolean', default: true },
+    { key: 'overbought', label: 'Overbought', group: 'Inputs', type: 'number', default: 70, min: 1, max: 100 },
+    { key: 'middle', label: 'Middle', group: 'Inputs', type: 'number', default: 50, min: 1, max: 100 },
+    { key: 'oversold', label: 'Oversold', group: 'Inputs', type: 'number', default: 30, min: 1, max: 100 },
+    { key: 'showMiddleLine', label: 'Show Middle', group: 'Inputs', type: 'boolean', default: true },
+    {
+        key: 'smoothingType',
+        label: 'Type',
+        group: 'Inputs',
+        type: 'select',
+        default: RSISmoothing.SMA,
+        options: [
+            { value: RSISmoothing.None, label: 'None' },
+            { value: RSISmoothing.SMA, label: 'SMA' },
+            { value: RSISmoothing.SMABB, label: 'SMA + BB' },
+            { value: RSISmoothing.EMA, label: 'EMA' },
+            { value: RSISmoothing.RMA, label: 'SMMA (RMA)' },
+            { value: RSISmoothing.WMA, label: 'WMA' },
+            { value: RSISmoothing.VWMA, label: 'VWMA' },
+        ] as const,
+    },
+    { key: 'smoothingLength', label: 'Length', group: 'Inputs', type: 'number', default: 14, min: 1, max: 200 },
+    { key: 'bbStdDev', label: 'BB StdDev', group: 'Inputs', type: 'number', default: 2, min: 1, max: 10 },
+    { key: 'smoothingColor', label: 'Smoothing Color', group: 'Inputs', type: 'color', default: '#FF6D00' },
+    { key: 'bbColor', label: 'BB Color', group: 'Inputs', type: 'color', default: '#94A3B8' },
     // Style
     { key: 'rsiColor', label: 'RSI Line', group: 'Style', type: 'color', default: '#7E57C2' },
     {
@@ -68,27 +87,6 @@ export const RSIMeta = [
         default: 1,
         options: [{ value: 1, label: '1' }, { value: 2, label: '2' }, { value: 3, label: '3' }, { value: 4, label: '4' }] as const,
     },
-    // Smoothing
-    {
-        key: 'smoothingType',
-        label: 'Type',
-        group: 'Smoothing',
-        type: 'select',
-        default: RSISmoothing.SMA,
-        options: [
-            { value: RSISmoothing.None, label: 'None' },
-            { value: RSISmoothing.SMA, label: 'SMA' },
-            { value: RSISmoothing.SMABB, label: 'SMA + BB' },
-            { value: RSISmoothing.EMA, label: 'EMA' },
-            { value: RSISmoothing.RMA, label: 'SMMA (RMA)' },
-            { value: RSISmoothing.WMA, label: 'WMA' },
-            { value: RSISmoothing.VWMA, label: 'VWMA' },
-        ] as const,
-    },
-    { key: 'smoothingLength', label: 'Length', group: 'Smoothing', type: 'number', default: 14, min: 1, max: 200 },
-    { key: 'bbStdDev', label: 'BB StdDev', group: 'Smoothing', type: 'number', default: 2, min: 1, max: 10 },
-    { key: 'smoothingColor', label: 'Smoothing Color', group: 'Smoothing', type: 'color', default: '#FF6D00' },
-    { key: 'bbColor', label: 'BB Color', group: 'Smoothing', type: 'color', default: '#94A3B8' },
 ] as const satisfies readonly MetaField[];
 
 export type RSIConfig = DeriveConfig<typeof RSIMeta>;
@@ -136,38 +134,7 @@ function getSourceValue(candle: CandleData, source: number): number {
     }
 }
 
-function calcRMA(values: number[], length: number): number[] {
-    if (length <= 0 || values.length < length) return [];
-
-    const seed = values.slice(0, length).reduce((sum, v) => sum + v, 0) / length;
-    const result: number[] = [seed];
-    let prev = seed;
-
-    for (let i = length; i < values.length; i++) {
-        prev = ((prev * (length - 1)) + values[i]) / length;
-        result.push(prev);
-    }
-
-    return result;
-}
-
-function calcWMA(values: number[], length: number): number[] {
-    if (length <= 0 || values.length < length) return [];
-
-    const divisor = (length * (length + 1)) / 2;
-    const result: number[] = [];
-
-    for (let i = length - 1; i < values.length; i++) {
-        let weightedSum = 0;
-        for (let j = 0; j < length; j++) {
-            weightedSum += values[i - length + 1 + j] * (j + 1);
-        }
-        result.push(weightedSum / divisor);
-    }
-
-    return result;
-}
-
+// technicalindicators exposes VWAP but not rolling VWMA, so this stays local.
 function calcVWMA(values: number[], volumes: number[], length: number): number[] {
     if (length <= 0 || values.length < length) return [];
 
@@ -197,35 +164,15 @@ function calcSmoothing(values: number[], volumes: number[], type: number, length
         case RSISmoothing.EMA:
             return EMA.calculate({ period: length, values });
         case RSISmoothing.RMA:
-            return calcRMA(values, length);
+            return WEMA.calculate({ period: length, values });
         case RSISmoothing.WMA:
-            return calcWMA(values, length);
+            return WMA.calculate({ period: length, values });
         case RSISmoothing.VWMA:
             return calcVWMA(values, volumes, length);
         case RSISmoothing.None:
         default:
             return [];
     }
-}
-
-function calcBollinger(values: number[], length: number, stdDevMult: number) {
-    if (length <= 0 || values.length < length) return [];
-
-    const result: { upper: number; lower: number; }[] = [];
-
-    for (let i = length - 1; i < values.length; i++) {
-        const window = values.slice(i - length + 1, i + 1);
-        const mean = window.reduce((sum, v) => sum + v, 0) / length;
-        const variance = window.reduce((sum, v) => sum + (v - mean) ** 2, 0) / length;
-        const stdDev = Math.sqrt(variance);
-
-        result.push({
-            upper: mean + stdDev * stdDevMult,
-            lower: mean - stdDev * stdDevMult,
-        });
-    }
-
-    return result;
 }
 
 export function calcRSI(data: CandleData[], config: RSIConfig = defaultRSIConfig): RSIData[] {
@@ -268,7 +215,11 @@ export function calcRSI(data: CandleData[], config: RSIConfig = defaultRSIConfig
     }
 
     if (config.smoothingType === RSISmoothing.SMABB) {
-        const bb = calcBollinger(values, smoothingLength, config.bbStdDev);
+        const bb = BollingerBands.calculate({
+            period: smoothingLength,
+            values,
+            stdDev: config.bbStdDev,
+        });
         const bbOffset = values.length - bb.length;
 
         for (let i = 0; i < bb.length; i++) {

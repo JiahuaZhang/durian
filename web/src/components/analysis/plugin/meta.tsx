@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 // ── Shared meta field types ──────────────────────────────────────────────
 
 export type MetaFieldType = 'number' | 'color' | 'boolean' | 'select';
@@ -24,6 +26,48 @@ export type DeriveConfig<M extends readonly MetaField[]> = {
 // ── Generic default config from meta ─────────────────────────────────────
 export function getDefaultConfig<M extends readonly MetaField[]>(meta: M): DeriveConfig<M> {
     return Object.fromEntries(meta.map(f => [f.key, f.default])) as DeriveConfig<M>;
+}
+
+export function getMetaGroups(meta: readonly MetaField[]): string[] {
+    const groups: string[] = [];
+    const seen = new Set<string>();
+
+    meta.forEach(field => {
+        if (seen.has(field.group)) return;
+        seen.add(field.group);
+        groups.push(field.group);
+    });
+
+    return groups;
+}
+
+const toTabId = (group: string) => group.toLowerCase().replace(/\s+/g, '-');
+
+type MetaConfigRecord = Record<string, string | number | boolean>;
+
+export type MetaTab = {
+    id: string;
+    label: string;
+    content: ReactNode;
+};
+
+export function buildMetaTabs<TConfig extends MetaConfigRecord>(
+    meta: readonly MetaField[],
+    config: TConfig,
+    onUpdate: (updates: Partial<TConfig>) => void
+): MetaTab[] {
+    return getMetaGroups(meta).map(group => ({
+        id: toTabId(group),
+        label: group,
+        content: (
+            <MetaGroupPanel
+                meta={meta}
+                group={group}
+                config={config}
+                onUpdate={(updates) => onUpdate(updates as Partial<TConfig>)}
+            />
+        ),
+    }));
 }
 
 // ── Generic field renderer ───────────────────────────────────────────────

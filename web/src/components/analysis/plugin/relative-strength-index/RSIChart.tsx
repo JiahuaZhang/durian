@@ -3,8 +3,8 @@ import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartConfigPopup } from '../../ChartConfigPopup';
 import { useCandleData, useChart, useIndicators } from '../../context/ChartContext';
-import { RSIInputPanel, RSILevelPanel, RSISmoothingPanel, RSIStylePanel } from './RSIConfigPanel';
-import { calcRSI, getRSISourceLabel, RSISmoothing, type RSIConfig, type RSIData } from './rsi';
+import { buildMetaTabs } from '../meta';
+import { calcRSI, getRSISourceLabel, RSIMeta, RSISmoothing, type RSIConfig, type RSIData } from './rsi';
 
 type RSIChartProps = {
     id: string;
@@ -38,7 +38,7 @@ export function RSIChart({ id }: RSIChartProps) {
 
     const { chartRef: mainChartRef, candleSeriesRef, syncingRef } = useChart();
     const candleData = useCandleData();
-    const { getIndicator, updateIndicator, removeIndicator } = useIndicators();
+    const { getIndicator, updateIndicator, removeIndicator, updateIndicatorConfig } = useIndicators();
 
     const indicator = getIndicator(id);
     const rsiConfig = indicator?.config as RSIConfig | undefined;
@@ -47,6 +47,11 @@ export function RSIChart({ id }: RSIChartProps) {
         if (!rsiConfig || candleData.length === 0) return [];
         return calcRSI(candleData, rsiConfig);
     }, [candleData, rsiConfig]);
+
+    const configTabs = useMemo(() => {
+        if (!rsiConfig) return [];
+        return buildMetaTabs(RSIMeta, rsiConfig, (updates) => updateIndicatorConfig(id, updates));
+    }, [id, rsiConfig, updateIndicatorConfig]);
 
     useEffect(() => {
         updateIndicator(id, { data: { rsiData } });
@@ -274,12 +279,7 @@ export function RSIChart({ id }: RSIChartProps) {
                     isOpen={configOpen}
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
-                    tabs={[
-                        { id: 'input', label: 'Input', content: <RSIInputPanel id={id} /> },
-                        { id: 'levels', label: 'Levels', content: <RSILevelPanel id={id} /> },
-                        { id: 'style', label: 'Style', content: <RSIStylePanel id={id} /> },
-                        { id: 'smoothing', label: 'Smoothing', content: <RSISmoothingPanel id={id} /> },
-                    ]}
+                    tabs={configTabs}
                 />
             </div>
 
