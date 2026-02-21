@@ -64,9 +64,9 @@ export const RSIMeta = [
     },
     { key: 'smoothingLength', label: 'Length', group: 'Inputs', type: 'number', default: 14, min: 1, max: 200 },
     { key: 'bbStdDev', label: 'BB StdDev', group: 'Inputs', type: 'number', default: 2, min: 1, max: 10 },
-    { key: 'smoothingColor', label: 'Smoothing Color', group: 'Inputs', type: 'color', default: '#FF6D00' },
-    { key: 'bbColor', label: 'BB Color', group: 'Inputs', type: 'color', default: '#94A3B8' },
     // Style
+    { key: 'smoothingColor', label: 'Smoothing Color', group: 'Style', type: 'color', default: '#FF6D00' },
+    { key: 'bbColor', label: 'BB Color', group: 'Style', type: 'color', default: '#94A3B8' },
     { key: 'rsiColor', label: 'RSI Line', group: 'Style', type: 'color', default: '#7E57C2' },
     {
         key: 'rsiLineWidth',
