@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useCandleData, useChart, useIndicators } from '../../context/ChartContext';
 import { MACDConfig } from './macd';
 import { ChartConfigPopup } from '../../ChartConfigPopup';
-import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData } from './macd';
-import { MACDDivergencePanel, MACDInputPanel, MACDStylePanel } from './MACDConfigPanel';
+import { buildMetaTabs } from '../meta';
+import { calcMACD, findMACDCrosses, findMACDDivergences, MACDData, MACDMeta } from './macd';
 
 type MACDChartProps = {
     id: string;
@@ -25,7 +25,7 @@ export function MACDChart({ id }: MACDChartProps) {
 
     const { chartRef: mainChartRef, candleSeriesRef, syncingRef } = useChart();
     const data = useCandleData();
-    const { getIndicator, updateIndicator, removeIndicator } = useIndicators();
+    const { getIndicator, updateIndicator, removeIndicator, updateIndicatorConfig } = useIndicators();
 
     const indicator = getIndicator(id);
     const macdConfig = indicator?.config as MACDConfig;
@@ -52,6 +52,11 @@ export function MACDChart({ id }: MACDChartProps) {
         });
     }, [data, macdData, macdConfig?.showDivergences, macdConfig?.pivotLookbackLeft,
         macdConfig?.pivotLookbackRight, macdConfig?.rangeMin, macdConfig?.rangeMax, macdConfig?.dontTouchZero]);
+
+    const configTabs = useMemo(() => {
+        if (!macdConfig) return [];
+        return buildMetaTabs(MACDMeta, macdConfig, (updates) => updateIndicatorConfig(id, updates));
+    }, [id, macdConfig, updateIndicatorConfig]);
 
     // Sync computed data to context
     useEffect(() => {
@@ -280,11 +285,7 @@ export function MACDChart({ id }: MACDChartProps) {
                     isOpen={configOpen}
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
-                    tabs={[
-                        { id: 'input', label: 'Input', content: <MACDInputPanel id={id} /> },
-                        { id: 'style', label: 'Style', content: <MACDStylePanel id={id} /> },
-                        { id: 'divergence', label: 'Divergence', content: <MACDDivergencePanel id={id} /> },
-                    ]}
+                    tabs={configTabs}
                 />
             </div>
 

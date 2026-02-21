@@ -3,8 +3,9 @@ import type { MAConfig } from "./plugin/moving-average/ma";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { ChartConfigPopup } from "./ChartConfigPopup";
-import { VolumeStylePanel } from "./plugin/volume/VolumeConfigPanel";
-import { MAInputsPanel, MAStylePanel } from "./plugin/moving-average/MAConfigPanel";
+import { buildMetaTabs } from "./plugin/meta";
+import { MAMeta } from "./plugin/moving-average/ma";
+import { VolumeMeta } from "./plugin/volume/volume";
 
 const formatPrice = (val: number) => val.toFixed(2)
 const formatVol = (val: number) => {
@@ -58,6 +59,23 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
     const { toggleOverlay, removeOverlay, updateOverlayConfig } = useOverlays();
     
     const value = getOverlayValueFromLegend(overlay.type, overlayLegend);
+    const volumeTabs = useMemo(() => {
+        if (overlay.type !== 'volume') return [];
+        return buildMetaTabs(
+            VolumeMeta,
+            overlay.config as VolumeConfig,
+            (updates) => updateOverlayConfig(overlay.id, updates)
+        );
+    }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
+
+    const maTabs = useMemo(() => {
+        if (overlay.type !== 'sma' && overlay.type !== 'ema') return [];
+        return buildMetaTabs(
+            MAMeta,
+            overlay.config as MAConfig,
+            (updates) => updateOverlayConfig(overlay.id, updates)
+        );
+    }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
 
     return (
         <div 
@@ -115,18 +133,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                     isOpen={configOpen}
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
-                    tabs={[
-                        {
-                            id: 'style',
-                            label: 'Style',
-                            content: (
-                                <VolumeStylePanel
-                                    config={overlay.config as VolumeConfig}
-                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
-                                />
-                            )
-                        }
-                    ]}
+                    tabs={volumeTabs}
                 />
             )}
             {(overlay.type === 'sma' || overlay.type === 'ema') && (
@@ -135,28 +142,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                     isOpen={configOpen}
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
-                    tabs={[
-                        {
-                            id: 'inputs',
-                            label: 'Inputs',
-                            content: (
-                                <MAInputsPanel
-                                    config={overlay.config as MAConfig}
-                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
-                                />
-                            )
-                        },
-                        {
-                            id: 'style',
-                            label: 'Style',
-                            content: (
-                                <MAStylePanel
-                                    config={overlay.config as MAConfig}
-                                    onUpdate={(updates) => updateOverlayConfig(overlay.id, updates)}
-                                />
-                            )
-                        },
-                    ]}
+                    tabs={maTabs}
                 />
             )}
         </div>
