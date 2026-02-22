@@ -16,7 +16,7 @@ export const MACDMeta = [
     { key: 'histogramUpColor', label: 'Histogram Up', group: 'Style', type: 'color', default: '#26a69a' },
     { key: 'histogramDownColor', label: 'Histogram Down', group: 'Style', type: 'color', default: '#ef5350' },
     // Divergence
-    { key: 'showDivergences', label: 'Show Divergences', group: 'Divergence', type: 'boolean', default: true },
+    { key: 'showDivergences', label: 'Show Divergences', group: 'Divergence', type: 'boolean', default: false },
     { key: 'divergenceBullColor', label: 'Bull Color', group: 'Divergence', type: 'color', default: '#26A69A' },
     { key: 'divergenceBearColor', label: 'Bear Color', group: 'Divergence', type: 'color', default: '#EF5350' },
     { key: 'pivotLookbackLeft', label: 'Lookback Left', group: 'Divergence', type: 'number', default: 20, min: 1, max: 20 },

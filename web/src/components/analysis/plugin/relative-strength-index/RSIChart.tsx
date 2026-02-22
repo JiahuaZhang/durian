@@ -1,10 +1,10 @@
-import { createChart, ISeriesApi, LineSeries } from 'lightweight-charts';
+import { createChart, createSeriesMarkers, ISeriesApi, LineSeries } from 'lightweight-charts';
 import { Settings, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartConfigPopup } from '../../ChartConfigPopup';
 import { useCandleData, useChart, useIndicators } from '../../context/ChartContext';
 import { buildMetaTabs } from '../meta';
-import { calcRSI, getRSISourceLabel, RSIMeta, RSISmoothing, type RSIConfig, type RSIData } from './rsi';
+import { calcRSI, findRSIDivergences, getRSISourceLabel, RSIMeta, RSISmoothing, type RSIConfig, type RSIData, type RSIDivergenceType } from './rsi';
 
 type RSIChartProps = {
     id: string;
@@ -19,6 +19,36 @@ type RSILegend = {
 };
 
 const formatValue = (value: number | undefined) => value === undefined ? '--' : value.toFixed(2);
+
+function isBullishType(type: RSIDivergenceType): boolean {
+    return type === 'bullish' || type === 'hiddenBullish';
+}
+
+function getDivergenceLabel(type: RSIDivergenceType): string {
+    switch (type) {
+        case 'bullish':
+            return 'Bull';
+        case 'hiddenBullish':
+            return 'H Bull';
+        case 'bearish':
+            return 'Bear';
+        case 'hiddenBearish':
+            return 'H Bear';
+    }
+}
+
+function getDivergenceColor(type: RSIDivergenceType, config: RSIConfig): string {
+    switch (type) {
+        case 'bullish':
+            return config.divergenceBullColor;
+        case 'hiddenBullish':
+            return config.divergenceHiddenBullColor;
+        case 'bearish':
+            return config.divergenceBearColor;
+        case 'hiddenBearish':
+            return config.divergenceHiddenBearColor;
+    }
+}
 
 export function RSIChart({ id }: RSIChartProps) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -48,14 +78,30 @@ export function RSIChart({ id }: RSIChartProps) {
         return calcRSI(candleData, rsiConfig);
     }, [candleData, rsiConfig]);
 
+    const divergences = useMemo(() => {
+        if (!rsiConfig?.showDivergences || candleData.length === 0) return [];
+        return findRSIDivergences(candleData, rsiData, {
+            pivotLookbackLeft: rsiConfig.pivotLookbackLeft,
+            pivotLookbackRight: rsiConfig.pivotLookbackRight,
+            rangeMin: rsiConfig.rangeMin,
+            rangeMax: rsiConfig.rangeMax,
+            plotBullish: rsiConfig.plotBullish,
+            plotHiddenBullish: rsiConfig.plotHiddenBullish,
+            plotBearish: rsiConfig.plotBearish,
+            plotHiddenBearish: rsiConfig.plotHiddenBearish,
+        });
+    }, [candleData, rsiData, rsiConfig?.showDivergences, rsiConfig?.pivotLookbackLeft, rsiConfig?.pivotLookbackRight,
+        rsiConfig?.rangeMin, rsiConfig?.rangeMax, rsiConfig?.plotBullish, rsiConfig?.plotHiddenBullish,
+        rsiConfig?.plotBearish, rsiConfig?.plotHiddenBearish]);
+
     const configTabs = useMemo(() => {
         if (!rsiConfig) return [];
         return buildMetaTabs(RSIMeta, rsiConfig, (updates) => updateIndicatorConfig(id, updates));
     }, [id, rsiConfig, updateIndicatorConfig]);
 
     useEffect(() => {
-        updateIndicator(id, { data: { rsiData } });
-    }, [id, rsiData, updateIndicator]);
+        updateIndicator(id, { data: { rsiData, divergences } });
+    }, [id, rsiData, divergences, updateIndicator]);
 
     useEffect(() => {
         if (!containerRef.current || candleData.length === 0 || !rsiConfig) return;
@@ -99,6 +145,46 @@ export function RSIChart({ id }: RSIChartProps) {
             lastValueVisible: false,
         });
         rsiSeries.setData(rsiData.filter(d => d.value !== undefined).map(d => ({ time: d.time, value: d.value })) as any);
+
+        if (rsiConfig.showDivergences && divergences.length > 0) {
+            divergences.forEach(div => {
+                const startTime = rsiData[div.startIndex]?.time;
+                const endTime = rsiData[div.endIndex]?.time;
+                if (!startTime || !endTime) return;
+
+                const divLineSeries = newChart.addSeries(LineSeries, {
+                    color: getDivergenceColor(div.type, rsiConfig),
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+                divLineSeries.setData([
+                    { time: startTime, value: div.startRsi },
+                    { time: endTime, value: div.endRsi },
+                ] as any);
+            });
+
+            const markers = divergences
+                .map(div => {
+                    const endTime = rsiData[div.endIndex]?.time;
+                    if (!endTime) return null;
+                    const bullish = isBullishType(div.type);
+                    return {
+                        time: endTime,
+                        position: bullish ? 'belowBar' as const : 'aboveBar' as const,
+                        color: getDivergenceColor(div.type, rsiConfig),
+                        shape: bullish ? 'arrowUp' as const : 'arrowDown' as const,
+                        text: getDivergenceLabel(div.type),
+                    };
+                })
+                .filter((m): m is NonNullable<typeof m> => m !== null)
+                .sort((a, b) => String(a.time).localeCompare(String(b.time)));
+
+            if (markers.length > 0) {
+                createSeriesMarkers(rsiSeries, markers as any);
+            }
+        }
 
         let maSeries: ISeriesApi<'Line'> | undefined;
         let bbUpperSeries: ISeriesApi<'Line'> | undefined;
@@ -151,7 +237,7 @@ export function RSIChart({ id }: RSIChartProps) {
             newChart.remove();
             setChart(null);
         };
-    }, [id, candleData, rsiData, rsiConfig, updateIndicator]);
+    }, [id, candleData, rsiData, divergences, rsiConfig, updateIndicator]);
 
     useEffect(() => {
         const mainChart = mainChartRef.current;

@@ -64,6 +64,20 @@ export const RSIMeta = [
     },
     { key: 'smoothingLength', label: 'Length', group: 'Inputs', type: 'number', default: 14, min: 1, max: 200 },
     { key: 'bbStdDev', label: 'BB StdDev', group: 'Inputs', type: 'number', default: 2, min: 1, max: 10 },
+    // Divergence
+    { key: 'showDivergences', label: 'Show Divergences', group: 'Divergence', type: 'boolean', default: false },
+    { key: 'pivotLookbackRight', label: 'Lookback Right', group: 'Divergence', type: 'number', default: 0, min: 0, max: 20 },
+    { key: 'pivotLookbackLeft', label: 'Lookback Left', group: 'Divergence', type: 'number', default: 20, min: 1, max: 20 },
+    { key: 'rangeMin', label: 'Range Min', group: 'Divergence', type: 'number', default: 5, min: 1, max: 100 },
+    { key: 'rangeMax', label: 'Range Max', group: 'Divergence', type: 'number', default: 60, min: 2, max: 200 },
+    { key: 'plotBullish', label: 'Regular Bullish', group: 'Divergence', type: 'boolean', default: true },
+    { key: 'plotHiddenBullish', label: 'Hidden Bullish', group: 'Divergence', type: 'boolean', default: true },
+    { key: 'plotBearish', label: 'Regular Bearish', group: 'Divergence', type: 'boolean', default: true },
+    { key: 'plotHiddenBearish', label: 'Hidden Bearish', group: 'Divergence', type: 'boolean', default: false },
+    { key: 'divergenceBullColor', label: 'Bull Color', group: 'Divergence', type: 'color', default: '#26A69A' },
+    { key: 'divergenceHiddenBullColor', label: 'Hidden Bull Color', group: 'Divergence', type: 'color', default: '#7CC8A6' },
+    { key: 'divergenceBearColor', label: 'Bear Color', group: 'Divergence', type: 'color', default: '#8D1699' },
+    { key: 'divergenceHiddenBearColor', label: 'Hidden Bear Color', group: 'Divergence', type: 'color', default: '#EF5350' },
     // Style
     { key: 'smoothingColor', label: 'Smoothing Color', group: 'Style', type: 'color', default: '#FF6D00' },
     { key: 'bbColor', label: 'BB Color', group: 'Style', type: 'color', default: '#94A3B8' },
@@ -99,6 +113,50 @@ export type RSIData = {
     ma?: number;
     bbUpper?: number;
     bbLower?: number;
+};
+
+export type RSIPivot = {
+    index: number;
+    date: string;
+    price: number;
+    rsi: number;
+    type: 'high' | 'low';
+};
+
+export type RSIDivergenceType = 'bullish' | 'hiddenBullish' | 'bearish' | 'hiddenBearish';
+
+export type RSIDivergence = {
+    type: RSIDivergenceType;
+    startIndex: number;
+    endIndex: number;
+    startDate: string;
+    endDate: string;
+    startPrice: number;
+    endPrice: number;
+    startRsi: number;
+    endRsi: number;
+};
+
+export type RSIDivergenceConfig = {
+    pivotLookbackRight: number;
+    pivotLookbackLeft: number;
+    rangeMin: number;
+    rangeMax: number;
+    plotBullish: boolean;
+    plotHiddenBullish: boolean;
+    plotBearish: boolean;
+    plotHiddenBearish: boolean;
+};
+
+const defaultDivergenceConfig: RSIDivergenceConfig = {
+    pivotLookbackRight: 3,
+    pivotLookbackLeft: 1,
+    rangeMin: 5,
+    rangeMax: 60,
+    plotBullish: true,
+    plotHiddenBullish: true,
+    plotBearish: true,
+    plotHiddenBearish: false,
 };
 
 export function getRSISourceLabel(source: number): string {
@@ -230,4 +288,174 @@ export function calcRSI(data: CandleData[], config: RSIConfig = defaultRSIConfig
     }
 
     return result;
+}
+
+function findRSIPivots(
+    data: CandleData[],
+    rsiData: RSIData[],
+    lookbackLeft: number,
+    lookbackRight: number
+): RSIPivot[] {
+    const pivots: RSIPivot[] = [];
+
+    for (let i = lookbackLeft; i < rsiData.length - lookbackRight; i++) {
+        const currRsi = rsiData[i].value;
+        if (currRsi === undefined) continue;
+
+        let isLow = true;
+        let isHigh = true;
+
+        for (let j = 1; j <= lookbackLeft; j++) {
+            const left = rsiData[i - j].value;
+            if (left === undefined) {
+                isLow = false;
+                isHigh = false;
+                break;
+            }
+            if (left < currRsi) isLow = false;
+            if (left > currRsi) isHigh = false;
+        }
+
+        if (!isLow && !isHigh) continue;
+
+        for (let j = 1; j <= lookbackRight; j++) {
+            const right = rsiData[i + j].value;
+            if (right === undefined) {
+                isLow = false;
+                isHigh = false;
+                break;
+            }
+            if (right < currRsi) isLow = false;
+            if (right > currRsi) isHigh = false;
+        }
+
+        if (isLow) {
+            pivots.push({
+                index: i,
+                date: data[i].time,
+                price: data[i].low,
+                rsi: currRsi,
+                type: 'low',
+            });
+        }
+
+        if (isHigh) {
+            pivots.push({
+                index: i,
+                date: data[i].time,
+                price: data[i].high,
+                rsi: currRsi,
+                type: 'high',
+            });
+        }
+    }
+
+    return pivots;
+}
+
+export function findRSIDivergences(
+    data: CandleData[],
+    rsiData: RSIData[],
+    config: Partial<RSIDivergenceConfig> = {}
+): RSIDivergence[] {
+    const {
+        pivotLookbackRight,
+        pivotLookbackLeft,
+        rangeMin,
+        rangeMax,
+        plotBullish,
+        plotHiddenBullish,
+        plotBearish,
+        plotHiddenBearish,
+    } = {
+        ...defaultDivergenceConfig,
+        ...config,
+    };
+
+    const inRange = (startIndex: number, endIndex: number): boolean => {
+        const bars = endIndex - startIndex;
+        return bars >= rangeMin && bars <= rangeMax;
+    };
+
+    const pivots = findRSIPivots(data, rsiData, pivotLookbackLeft, pivotLookbackRight);
+    const divergences: RSIDivergence[] = [];
+
+    const lows = pivots.filter(p => p.type === 'low');
+    const highs = pivots.filter(p => p.type === 'high');
+
+    for (let i = 1; i < lows.length; i++) {
+        const prev = lows[i - 1];
+        const curr = lows[i];
+
+        if (!inRange(prev.index, curr.index)) continue;
+
+        const regularBull = curr.price < prev.price && curr.rsi > prev.rsi;
+        if (plotBullish && regularBull) {
+            divergences.push({
+                type: 'bullish',
+                startIndex: prev.index,
+                endIndex: curr.index,
+                startDate: prev.date,
+                endDate: curr.date,
+                startPrice: prev.price,
+                endPrice: curr.price,
+                startRsi: prev.rsi,
+                endRsi: curr.rsi,
+            });
+        }
+
+        const hiddenBull = curr.price > prev.price && curr.rsi < prev.rsi;
+        if (plotHiddenBullish && hiddenBull) {
+            divergences.push({
+                type: 'hiddenBullish',
+                startIndex: prev.index,
+                endIndex: curr.index,
+                startDate: prev.date,
+                endDate: curr.date,
+                startPrice: prev.price,
+                endPrice: curr.price,
+                startRsi: prev.rsi,
+                endRsi: curr.rsi,
+            });
+        }
+    }
+
+    for (let i = 1; i < highs.length; i++) {
+        const prev = highs[i - 1];
+        const curr = highs[i];
+
+        if (!inRange(prev.index, curr.index)) continue;
+
+        const regularBear = curr.price > prev.price && curr.rsi < prev.rsi;
+        if (plotBearish && regularBear) {
+            divergences.push({
+                type: 'bearish',
+                startIndex: prev.index,
+                endIndex: curr.index,
+                startDate: prev.date,
+                endDate: curr.date,
+                startPrice: prev.price,
+                endPrice: curr.price,
+                startRsi: prev.rsi,
+                endRsi: curr.rsi,
+            });
+        }
+
+        const hiddenBear = curr.price < prev.price && curr.rsi > prev.rsi;
+        if (plotHiddenBearish && hiddenBear) {
+            divergences.push({
+                type: 'hiddenBearish',
+                startIndex: prev.index,
+                endIndex: curr.index,
+                startDate: prev.date,
+                endDate: curr.date,
+                startPrice: prev.price,
+                endPrice: curr.price,
+                startRsi: prev.rsi,
+                endRsi: curr.rsi,
+            });
+        }
+    }
+
+    return divergences.sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
 }
