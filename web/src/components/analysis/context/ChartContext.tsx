@@ -1,6 +1,7 @@
-import { createChart, ISeriesApi } from 'lightweight-charts';
+import { CandlestickSeries, createChart, ISeriesApi, LineSeries } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { defaultMACDConfig, type MACDConfig } from '../plugin/macd/macd';
+import { computeMarketBiasData, defaultMarketBiasConfig, type MarketBiasConfig } from '../plugin/market-bias/market-bias';
 import { computeMAData, createMASeries, type MAConfig, getDefaultMAConfig } from '../plugin/moving-average/ma';
 import { defaultRSIConfig, type RSIConfig } from '../plugin/relative-strength-index/rsi';
 import { computeVolumeData, createVolumeSeries, defaultVolumeConfig, type VolumeConfig } from '../plugin/volume/volume';
@@ -13,11 +14,12 @@ export { useCandleData, type CandleData } from './ChartDataContext';
 // Types
 // ============================================================================
 
-export type OverlayType = 'volume' | 'sma' | 'ema';
+export type OverlayType = 'volume' | 'sma' | 'ema' | 'market-bias';
 export type IndicatorType = 'macd' | 'rsi';
 
 // Re-export plugin config types for convenience
 export type { VolumeConfig } from '../plugin/volume/volume';
+export type { MarketBiasConfig } from '../plugin/market-bias/market-bias';
 export type { MACDConfig } from '../plugin/macd/macd';
 export type { RSIConfig } from '../plugin/relative-strength-index/rsi';
 
@@ -25,7 +27,7 @@ export type OverlayIndicator = {
     id: string;
     type: OverlayType;
     visible: boolean;
-    config: VolumeConfig | MAConfig;
+    config: VolumeConfig | MAConfig | MarketBiasConfig;
     data: any[];
 };
 
@@ -50,7 +52,13 @@ export type MainLegend = {
 export type VolumeLegend = { volume: number };
 export type SMALegend = { value: number };
 export type EMALegend = { value: number };
-export type OverlayLegend = VolumeLegend | SMALegend | EMALegend;
+export type MarketBiasLegend = { open: number; high: number; low: number; close: number; };
+export type OverlayLegend = VolumeLegend | SMALegend | EMALegend | MarketBiasLegend;
+
+type OverlaySeriesEntry = {
+    primary: ISeriesApi<any>;
+    extras: ISeriesApi<any>[];
+};
 
 // ============================================================================
 // State
@@ -85,7 +93,7 @@ const initialState: ChartState = {
 type ChartAction =
     | { type: 'OVERLAY_ADDED'; overlay: OverlayIndicator }
     | { type: 'OVERLAY_REMOVED'; id: string }
-    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | MAConfig; data: any[] }
+    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | MAConfig | MarketBiasConfig; data: any[] }
     | { type: 'OVERLAY_TOGGLED'; id: string; visible: boolean }
     | { type: 'INDICATOR_ADDED'; indicator: SubIndicator }
     | { type: 'INDICATOR_REMOVED'; id: string }
@@ -186,7 +194,7 @@ type ChartContextType = {
     // Refs (for imperative access)
     chartRef: React.RefObject<ReturnType<typeof createChart> | null>;
     candleSeriesRef: React.RefObject<ISeriesApi<"Candlestick"> | null>;
-    overlaySeriesRef: React.RefObject<Map<string, ISeriesApi<any>>>;
+    overlaySeriesRef: React.RefObject<Map<string, OverlaySeriesEntry>>;
     syncingRef: React.RefObject<boolean>;
     // Action creators
     actions: {
@@ -194,7 +202,7 @@ type ChartContextType = {
         destroyChart: () => void;
         addOverlay: (type: OverlayType) => string;
         removeOverlay: (id: string) => void;
-        updateOverlayConfig: <T extends VolumeConfig | MAConfig>(id: string, configUpdates: Partial<T>) => void;
+        updateOverlayConfig: <T extends VolumeConfig | MAConfig | MarketBiasConfig>(id: string, configUpdates: Partial<T>) => void;
         toggleOverlay: (id: string) => void;
         addIndicator: (type: IndicatorType) => string;
         removeIndicator: (id: string) => void;
@@ -220,7 +228,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
     // Refs for imperative chart access — NOT in React state
     const chartRef = useRef<ReturnType<typeof createChart> | null>(null);
     const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-    const overlaySeriesRef = useRef<Map<string, ISeriesApi<any>>>(new Map());
+    const overlaySeriesRef = useRef<Map<string, OverlaySeriesEntry>>(new Map());
     const syncingRef = useRef(false);
 
     // We need a ref to read current state inside callbacks without re-creating them
@@ -241,7 +249,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 const volumeSeries = createVolumeSeries(chart);
                 const data = computeVolumeData(candleData, config);
                 volumeSeries.setData(data as any);
-                overlaySeriesRef.current.set(overlay.id, volumeSeries);
+                overlaySeriesRef.current.set(overlay.id, { primary: volumeSeries, extras: [] });
 
                 // Adjust visibility + margins
                 volumeSeries.applyOptions({ visible: overlay.visible });
@@ -277,7 +285,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 const volumeSeries = createVolumeSeries(chart);
                 data = computeVolumeData(candleData, config);
                 volumeSeries.setData(data as any);
-                overlaySeriesRef.current.set(id, volumeSeries);
+                overlaySeriesRef.current.set(id, { primary: volumeSeries, extras: [] });
 
                 volumeSeries.priceScale().applyOptions({
                     scaleMargins: { top: 0.8, bottom: 0 },
@@ -298,7 +306,49 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 const maSeries = createMASeries(chart, config);
                 data = computeMAData(candleData, type, config);
                 maSeries.setData(data);
-                overlaySeriesRef.current.set(id, maSeries);
+                overlaySeriesRef.current.set(id, { primary: maSeries, extras: [] });
+            }
+
+            dispatch({ type: 'OVERLAY_ADDED', overlay: { id, type, visible: true, config, data } });
+        }
+
+        if (type === 'market-bias') {
+            const config: MarketBiasConfig = { ...defaultMarketBiasConfig };
+            let data: any[] = [];
+
+            if (chart) {
+                const haSeries = chart.addSeries(CandlestickSeries, {
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    borderVisible: false,
+                });
+                const biasSeries = chart.addSeries(LineSeries, {
+                    lineWidth: 4,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+
+                data = computeMarketBiasData(candleData, config);
+                haSeries.setData(data.map(point => ({
+                    time: point.time,
+                    open: point.open,
+                    high: point.high,
+                    low: point.low,
+                    close: point.close,
+                    color: point.candleColor,
+                    borderColor: point.candleColor,
+                    wickColor: point.candleColor,
+                })) as any);
+                biasSeries.setData(data.map(point => ({
+                    time: point.time,
+                    value: point.avg,
+                    color: point.biasColor,
+                })) as any);
+
+                haSeries.applyOptions({ visible: config.showHACandles });
+                biasSeries.applyOptions({ visible: config.showMarketBias });
+                overlaySeriesRef.current.set(id, { primary: haSeries, extras: [biasSeries] });
             }
 
             dispatch({ type: 'OVERLAY_ADDED', overlay: { id, type, visible: true, config, data } });
@@ -309,9 +359,12 @@ export function ChartProvider({ children }: { children: ReactNode }) {
 
     const removeOverlay = useCallback((id: string) => {
         const chart = chartRef.current;
-        const series = overlaySeriesRef.current.get(id);
-        if (chart && series) {
-            try { chart.removeSeries(series); } catch { /* already removed */ }
+        const entry = overlaySeriesRef.current.get(id);
+        if (chart && entry) {
+            const allSeries = [entry.primary, ...entry.extras];
+            allSeries.forEach(series => {
+                try { chart.removeSeries(series); } catch { /* already removed */ }
+            });
             overlaySeriesRef.current.delete(id);
         }
 
@@ -331,22 +384,23 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'OVERLAY_REMOVED', id });
     }, []);
 
-    const updateOverlayConfig = useCallback(<T extends VolumeConfig | MAConfig>(id: string, configUpdates: Partial<T>) => {
+    const updateOverlayConfig = useCallback(<T extends VolumeConfig | MAConfig | MarketBiasConfig>(id: string, configUpdates: Partial<T>) => {
         const currentState = stateRef.current;
         const overlay = currentState.overlays[id];
         if (!overlay) return;
 
-        const series = overlaySeriesRef.current.get(id);
+        const entry = overlaySeriesRef.current.get(id);
         const newConfig = { ...overlay.config, ...configUpdates } as T;
 
         if (overlay.type === 'volume') {
             const data = computeVolumeData(candleData, newConfig as VolumeConfig);
-            if (series) series.setData(data as any);
+            if (entry) entry.primary.setData(data as any);
             dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data });
         }
 
         if (overlay.type === 'sma' || overlay.type === 'ema') {
             const maConfig = newConfig as MAConfig;
+            const series = entry?.primary;
 
             // Apply style options
             if (series && ('color' in configUpdates || 'lineWidth' in configUpdates)) {
@@ -362,6 +416,38 @@ export function ChartProvider({ children }: { children: ReactNode }) {
 
             dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data });
         }
+
+        if (overlay.type === 'market-bias') {
+            const marketBiasConfig = newConfig as MarketBiasConfig;
+            const data = computeMarketBiasData(candleData, marketBiasConfig);
+            const haSeries = entry?.primary;
+            const biasSeries = entry?.extras[0];
+
+            if (haSeries) {
+                haSeries.setData(data.map(point => ({
+                    time: point.time,
+                    open: point.open,
+                    high: point.high,
+                    low: point.low,
+                    close: point.close,
+                    color: point.candleColor,
+                    borderColor: point.candleColor,
+                    wickColor: point.candleColor,
+                })) as any);
+                haSeries.applyOptions({ visible: overlay.visible && marketBiasConfig.showHACandles });
+            }
+
+            if (biasSeries) {
+                biasSeries.setData(data.map(point => ({
+                    time: point.time,
+                    value: point.avg,
+                    color: point.biasColor,
+                })) as any);
+                biasSeries.applyOptions({ visible: overlay.visible && marketBiasConfig.showMarketBias });
+            }
+
+            dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data });
+        }
     }, [candleData]);
 
     const toggleOverlay = useCallback((id: string) => {
@@ -371,13 +457,21 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         if (!overlay) return;
 
         const newVisible = !overlay.visible;
-        const series = overlaySeriesRef.current.get(id);
+        const entry = overlaySeriesRef.current.get(id);
 
-        if (series) {
-            series.applyOptions({ visible: newVisible });
+        if (entry) {
+            if (overlay.type === 'volume' || overlay.type === 'sma' || overlay.type === 'ema') {
+                entry.primary.applyOptions({ visible: newVisible });
+            }
+
+            if (overlay.type === 'market-bias') {
+                const config = overlay.config as MarketBiasConfig;
+                entry.primary.applyOptions({ visible: newVisible && config.showHACandles });
+                entry.extras[0]?.applyOptions({ visible: newVisible && config.showMarketBias });
+            }
 
             if (overlay.type === 'volume' && newVisible) {
-                series.priceScale().applyOptions({
+                entry.primary.priceScale().applyOptions({
                     scaleMargins: { top: 0.8, bottom: 0 },
                 });
             }

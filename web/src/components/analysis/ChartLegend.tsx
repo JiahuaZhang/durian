@@ -1,4 +1,5 @@
-import { type EMALegend, type MainLegend, type OverlayIndicator, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
+import { type EMALegend, type MainLegend, type MarketBiasLegend, type OverlayIndicator, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
+import { MarketBiasMeta, type MarketBiasConfig } from "./plugin/market-bias/market-bias";
 import type { MAConfig } from "./plugin/moving-average/ma";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
@@ -20,33 +21,41 @@ export const UnoTrick = <div un-text="#26a69a #ef5350" />
 const getOverlayLabel = (overlay: OverlayIndicator) => {
     switch (overlay.type) {
         case 'volume': return 'Vol';
-        case 'sma': return `SMA(${(overlay.config as any).period})`;
-        case 'ema': return `EMA(${(overlay.config as any).period})`;
+        case 'sma': return `SMA(${(overlay.config as MAConfig).period})`;
+        case 'ema': return `EMA(${(overlay.config as MAConfig).period})`;
+        case 'market-bias': {
+            const config = overlay.config as MarketBiasConfig;
+            return `MB(${config.period}/${config.smoothing}/${config.oscillatorPeriod})`;
+        }
         default: return overlay.type;
     }
 }
 
 // Get formatted value for overlay based on type
-const getOverlayValueFromLegend = (type: string, legend: VolumeLegend | SMALegend | EMALegend | undefined): number | undefined => {
+const getOverlayValueFromLegend = (
+    type: string,
+    legend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | undefined
+): number | undefined => {
     if (!legend) return undefined;
-    
+
     switch (type) {
         case 'volume':
             return (legend as VolumeLegend).volume;
         case 'sma':
         case 'ema':
             return (legend as SMALegend).value;
+        case 'market-bias':
+            return (legend as MarketBiasLegend).close;
         default:
             return undefined;
     }
 }
 
-// Check if overlay is a moving average type
-const isMAOverlay = (type: string) => type === 'sma' || type === 'ema';
+const isPriceOverlay = (type: string) => type === 'sma' || type === 'ema' || type === 'market-bias';
 
 type OverlayLegendItemProps = {
     overlay: OverlayIndicator;
-    overlayLegend: VolumeLegend | SMALegend | EMALegend | undefined;
+    overlayLegend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | undefined;
     color: string;
 }
 
@@ -77,6 +86,15 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
         );
     }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
 
+    const marketBiasTabs = useMemo(() => {
+        if (overlay.type !== 'market-bias') return [];
+        return buildMetaTabs(
+            MarketBiasMeta,
+            overlay.config as MarketBiasConfig,
+            (updates) => updateOverlayConfig(overlay.id, updates)
+        );
+    }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
+
     return (
         <div 
             un-flex="~ items-center gap-1" 
@@ -87,7 +105,7 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
             <span un-text="slate-500">{getOverlayLabel(overlay)}</span>
             {value !== undefined && overlay.visible && (
                 <span un-text={color}>
-                    {isMAOverlay(overlay.type) ? formatPrice(value) : formatVol(value)}
+                    {isPriceOverlay(overlay.type) ? formatPrice(value) : formatVol(value)}
                 </span>
             )}
             {isHovered && (
@@ -143,6 +161,15 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
                     tabs={maTabs}
+                />
+            )}
+            {overlay.type === 'market-bias' && (
+                <ChartConfigPopup
+                    title="Market Bias Settings"
+                    isOpen={configOpen}
+                    onClose={() => setConfigOpen(false)}
+                    triggerRef={cogRef}
+                    tabs={marketBiasTabs}
                 />
             )}
         </div>

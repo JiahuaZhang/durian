@@ -7,7 +7,6 @@ import type { MAConfig } from './plugin/moving-average/ma';
 import { CandleDataProvider } from './context/ChartDataContext';
 import { ChartLegend } from './ChartLegend';
 import { buildMACrossMarkers } from './plugin/moving-average/ma';
-import { TechnicalSignals } from './TechnicalSignals';
 
 type AnalysisChartProps = {
     data: CandleData[]
@@ -85,7 +84,8 @@ function AnalysisChartInner() {
                 const currentOverlays = overlaysRef.current
                 const seriesMap = overlaySeriesRefValue.current
                 currentOverlays.forEach(overlay => {
-                    const series = seriesMap.get(overlay.id)
+                    const entry = seriesMap.get(overlay.id)
+                    const series = entry?.primary
                     if (!series) return
 
                     if (overlay.type === 'volume') {
@@ -98,6 +98,18 @@ function AnalysisChartInner() {
                         const lineData = param.seriesData.get(series) as LineData<Time> | undefined
                         if (lineData?.value !== undefined) {
                             setOverlayLegend(overlay.id, { value: lineData.value })
+                        }
+                    }
+                    if (overlay.type === 'market-bias') {
+                        const mbData = param.seriesData.get(series) as any
+                        if (mbData?.open !== undefined && mbData?.high !== undefined &&
+                            mbData?.low !== undefined && mbData?.close !== undefined) {
+                            setOverlayLegend(overlay.id, {
+                                open: mbData.open,
+                                high: mbData.high,
+                                low: mbData.low,
+                                close: mbData.close,
+                            })
                         }
                     }
                 })
@@ -149,6 +161,9 @@ function AnalysisChartInner() {
                     </AddButton>
                     <AddButton onClick={() => addOverlay('ema')}>
                         + EMA
+                    </AddButton>
+                    <AddButton onClick={() => addOverlay('market-bias')}>
+                        + Market Bias
                     </AddButton>
                     <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
