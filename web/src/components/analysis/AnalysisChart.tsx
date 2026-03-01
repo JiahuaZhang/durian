@@ -9,10 +9,10 @@ import { ChartLegend } from './ChartLegend';
 import { buildMACrossMarkers } from './plugin/moving-average/ma';
 
 type AnalysisChartProps = {
-    data: CandleData[]
-}
+    data: CandleData[];
+};
 
-const AddButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
+const AddButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode; }) => (
     <button
         onClick={onClick}
         un-p="x-3 y-1"
@@ -24,84 +24,90 @@ const AddButton = ({ onClick, children }: { onClick: () => void, children: React
     >
         {children}
     </button>
-)
+);
 
 function AnalysisChartInner() {
-    const chartContainerRef = useRef<HTMLDivElement>(null)
-    const data = useCandleData()
-    const { chartRef, candleSeriesRef, actions } = useChart()
-    const { overlays, overlaySeriesRef, addOverlay } = useOverlays()
-    const { addIndicator } = useIndicators()
-    const { setMainLegend, setOverlayLegend } = useLegend()
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const data = useCandleData();
+    const { chartRef, candleSeriesRef, actions } = useChart();
+    const { overlays, overlaySeriesRef, addOverlay } = useOverlays();
+    const { addIndicator } = useIndicators();
+    const { setMainLegend, setOverlayLegend } = useLegend();
 
     // Convert overlays record to array for iteration
-    const overlayList = useMemo(() => Object.values(overlays), [overlays])
+    const overlayList = useMemo(() => Object.values(overlays), [overlays]);
 
     // Create main chart — one-time init, imperative
     useEffect(() => {
-        if (!chartContainerRef.current || data.length === 0) return
+        if (!chartContainerRef.current || data.length === 0) return;
 
-        const newChart = createChart(chartContainerRef.current)
-        const mainSeries = newChart.addSeries(CandlestickSeries)
-        mainSeries.setData(data as any)
+        const newChart = createChart(chartContainerRef.current);
+        const mainSeries = newChart.addSeries(CandlestickSeries);
+        mainSeries.setData(data as any);
 
         // Register with context — this also creates series for default overlays
-        actions.initChart(newChart, mainSeries)
+        actions.initChart(newChart, mainSeries);
 
         return () => {
-            newChart.remove()
-            actions.destroyChart()
-        }
-    }, [data, actions])
+            newChart.remove();
+            actions.destroyChart();
+        };
+    }, [data, actions]);
 
     // Handle crosshair for legend
-    const overlaysRef = useRef(overlayList)
-    overlaysRef.current = overlayList
-    const overlaySeriesRefValue = overlaySeriesRef
+    const overlaysRef = useRef(overlayList);
+    overlaysRef.current = overlayList;
+    const overlaySeriesRefValue = overlaySeriesRef;
 
     useEffect(() => {
-        const chart = chartRef.current
-        const candleSeries = candleSeriesRef.current
-        if (!chart || !candleSeries) return
+        const chart = chartRef.current;
+        const candleSeries = candleSeriesRef.current;
+        if (!chart || !candleSeries) return;
 
         const handleCrosshair = (param: any) => {
             const isHovering = param.point !== undefined && param.time !== undefined &&
                 param.point.x >= 0 && param.point.x < chartContainerRef.current!.clientWidth &&
-                param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight
+                param.point.y >= 0 && param.point.y < chartContainerRef.current!.clientHeight;
 
             if (param.time && isHovering) {
-                const mainData = param.seriesData.get(candleSeries) as any
+                const mainData = param.seriesData.get(candleSeries) as any;
                 if (mainData) {
                     setMainLegend({
                         open: mainData.open,
                         high: mainData.high,
                         low: mainData.low,
                         close: mainData.close,
-                    })
+                    });
                 }
 
                 // Update overlay legends
-                const currentOverlays = overlaysRef.current
-                const seriesMap = overlaySeriesRefValue.current
+                const currentOverlays = overlaysRef.current;
+                const seriesMap = overlaySeriesRefValue.current;
                 currentOverlays.forEach(overlay => {
-                    const entry = seriesMap.get(overlay.id)
-                    const series = entry?.primary
-                    if (!series) return
+                    const entry = seriesMap.get(overlay.id);
+                    const series = entry?.primary;
+                    if (!series) return;
 
                     if (overlay.type === 'volume') {
-                        const vData = param.seriesData.get(series) as HistogramData<Time> | undefined
+                        const vData = param.seriesData.get(series) as HistogramData<Time> | undefined;
                         if (vData?.value !== undefined) {
-                            setOverlayLegend(overlay.id, { volume: vData.value })
+                            setOverlayLegend(overlay.id, { volume: vData.value });
                         }
                     }
                     if (overlay.type === 'sma' || overlay.type === 'ema') {
-                        const lineData = param.seriesData.get(series) as LineData<Time> | undefined
+                        const lineData = param.seriesData.get(series) as LineData<Time> | undefined;
                         if (lineData?.value !== undefined) {
-                            setOverlayLegend(overlay.id, { value: lineData.value })
+                            setOverlayLegend(overlay.id, { value: lineData.value });
+                        }
+                    }
+                    if (overlay.type === 'fibonacci') {
+                        const lineData = param.seriesData.get(series) as LineData<Time> | undefined;
+                        if (lineData?.value !== undefined) {
+                            setOverlayLegend(overlay.id, { value: lineData.value });
                         }
                     }
                     if (overlay.type === 'market-bias') {
-                        const mbData = param.seriesData.get(series) as any
+                        const mbData = param.seriesData.get(series) as any;
                         if (mbData?.open !== undefined && mbData?.high !== undefined &&
                             mbData?.low !== undefined && mbData?.close !== undefined) {
                             setOverlayLegend(overlay.id, {
@@ -109,22 +115,22 @@ function AnalysisChartInner() {
                                 high: mbData.high,
                                 low: mbData.low,
                                 close: mbData.close,
-                            })
+                            });
                         }
                     }
-                })
+                });
             } else {
-                setMainLegend(null)
-                const currentOverlays = overlaysRef.current
+                setMainLegend(null);
+                const currentOverlays = overlaysRef.current;
                 currentOverlays.forEach(overlay => {
-                    setOverlayLegend(overlay.id, undefined)
-                })
+                    setOverlayLegend(overlay.id, undefined);
+                });
             }
-        }
+        };
 
-        chart.subscribeCrosshairMove(handleCrosshair)
-        return () => chart.unsubscribeCrosshairMove(handleCrosshair)
-    }, [chartRef, candleSeriesRef, overlaySeriesRefValue, setMainLegend, setOverlayLegend])
+        chart.subscribeCrosshairMove(handleCrosshair);
+        return () => chart.unsubscribeCrosshairMove(handleCrosshair);
+    }, [chartRef, candleSeriesRef, overlaySeriesRefValue, setMainLegend, setOverlayLegend]);
 
     // Render cross signal markers on the candlestick series
     const maOverlaysWithSignals = useMemo(() => {
@@ -136,7 +142,7 @@ function AnalysisChartInner() {
     }, [overlayList]);
 
     useEffect(() => {
-        const candleSeries = candleSeriesRef.current
+        const candleSeries = candleSeriesRef.current;
         if (!candleSeries) return;
 
         const allMarkers = buildMACrossMarkers(maOverlaysWithSignals, data);
@@ -165,6 +171,9 @@ function AnalysisChartInner() {
                     <AddButton onClick={() => addOverlay('market-bias')}>
                         + Market Bias
                     </AddButton>
+                    <AddButton onClick={() => addOverlay('fibonacci')}>
+                        + Fibonacci
+                    </AddButton>
                     <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
                     </AddButton>
@@ -191,7 +200,7 @@ function AnalysisChartInner() {
 
             <AuxiliaryChart />
         </div>
-    )
+    );
 }
 
 export function AnalysisChart({ data }: AnalysisChartProps) {
@@ -201,5 +210,5 @@ export function AnalysisChart({ data }: AnalysisChartProps) {
                 <AnalysisChartInner />
             </ChartProvider>
         </CandleDataProvider>
-    )
+    );
 }

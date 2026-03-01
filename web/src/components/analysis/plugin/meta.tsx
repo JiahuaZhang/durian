@@ -13,6 +13,7 @@ export type MetaField = {
     options?: readonly { value: number | string; label: string }[];
     min?: number;
     max?: number;
+    step?: number;
 };
 
 export type MetaTypeMap = { number: number; color: string; boolean: boolean; select: number };
@@ -86,9 +87,11 @@ function MetaFieldRenderer({ field, value, onUpdate }: FieldRendererProps) {
                     type="number"
                     min={field.min}
                     max={field.max}
+                    step={field.step}
                     value={value as number}
                     onChange={(e) => {
-                        let v = parseInt(e.target.value) || (field.min ?? 0);
+                        const parsed = parseFloat(e.target.value);
+                        let v = Number.isFinite(parsed) ? parsed : (field.min ?? 0);
                         if (field.min !== undefined) v = Math.max(field.min, v);
                         if (field.max !== undefined) v = Math.min(field.max, v);
                         onUpdate(field.key, v);

@@ -1,5 +1,12 @@
-import { CandlestickSeries, createChart, ISeriesApi, LineSeries } from 'lightweight-charts';
+import { CandlestickSeries, createChart, ISeriesApi, LineSeries, LineStyle } from 'lightweight-charts';
 import { createContext, useCallback, useContext, useMemo, useReducer, useRef, type ReactNode } from 'react';
+import {
+    buildFibonacciRenderData,
+    computeFibonacciData,
+    defaultFibonacciConfig,
+    fibonacciLevelOrder,
+    type FibonacciConfig,
+} from '../plugin/fibonacci/fibonacci';
 import { defaultMACDConfig, type MACDConfig } from '../plugin/macd/macd';
 import { computeMarketBiasData, defaultMarketBiasConfig, type MarketBiasConfig } from '../plugin/market-bias/market-bias';
 import { computeMAData, createMASeries, type MAConfig, getDefaultMAConfig } from '../plugin/moving-average/ma';
@@ -14,12 +21,13 @@ export { useCandleData, type CandleData } from './ChartDataContext';
 // Types
 // ============================================================================
 
-export type OverlayType = 'volume' | 'sma' | 'ema' | 'market-bias';
+export type OverlayType = 'volume' | 'sma' | 'ema' | 'market-bias' | 'fibonacci';
 export type IndicatorType = 'macd' | 'rsi';
 
 // Re-export plugin config types for convenience
 export type { VolumeConfig } from '../plugin/volume/volume';
 export type { MarketBiasConfig } from '../plugin/market-bias/market-bias';
+export type { FibonacciConfig } from '../plugin/fibonacci/fibonacci';
 export type { MACDConfig } from '../plugin/macd/macd';
 export type { RSIConfig } from '../plugin/relative-strength-index/rsi';
 
@@ -27,7 +35,7 @@ export type OverlayIndicator = {
     id: string;
     type: OverlayType;
     visible: boolean;
-    config: VolumeConfig | MAConfig | MarketBiasConfig;
+    config: VolumeConfig | MAConfig | MarketBiasConfig | FibonacciConfig;
     data: any[];
 };
 
@@ -53,7 +61,8 @@ export type VolumeLegend = { volume: number };
 export type SMALegend = { value: number };
 export type EMALegend = { value: number };
 export type MarketBiasLegend = { open: number; high: number; low: number; close: number; };
-export type OverlayLegend = VolumeLegend | SMALegend | EMALegend | MarketBiasLegend;
+export type FibonacciLegend = { value: number };
+export type OverlayLegend = VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | FibonacciLegend;
 
 type OverlaySeriesEntry = {
     primary: ISeriesApi<any>;
@@ -93,7 +102,7 @@ const initialState: ChartState = {
 type ChartAction =
     | { type: 'OVERLAY_ADDED'; overlay: OverlayIndicator }
     | { type: 'OVERLAY_REMOVED'; id: string }
-    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | MAConfig | MarketBiasConfig; data: any[] }
+    | { type: 'OVERLAY_CONFIG_UPDATED'; id: string; config: VolumeConfig | MAConfig | MarketBiasConfig | FibonacciConfig; data: any[] }
     | { type: 'OVERLAY_TOGGLED'; id: string; visible: boolean }
     | { type: 'INDICATOR_ADDED'; indicator: SubIndicator }
     | { type: 'INDICATOR_REMOVED'; id: string }
@@ -202,7 +211,7 @@ type ChartContextType = {
         destroyChart: () => void;
         addOverlay: (type: OverlayType) => string;
         removeOverlay: (id: string) => void;
-        updateOverlayConfig: <T extends VolumeConfig | MAConfig | MarketBiasConfig>(id: string, configUpdates: Partial<T>) => void;
+        updateOverlayConfig: <T extends VolumeConfig | MAConfig | MarketBiasConfig | FibonacciConfig>(id: string, configUpdates: Partial<T>) => void;
         toggleOverlay: (id: string) => void;
         addIndicator: (type: IndicatorType) => string;
         removeIndicator: (id: string) => void;
@@ -354,6 +363,57 @@ export function ChartProvider({ children }: { children: ReactNode }) {
             dispatch({ type: 'OVERLAY_ADDED', overlay: { id, type, visible: true, config, data } });
         }
 
+        if (type === 'fibonacci') {
+            const config: FibonacciConfig = { ...defaultFibonacciConfig };
+            let data: any[] = [];
+
+            if (chart) {
+                const computed = computeFibonacciData(candleData, config);
+                const render = buildFibonacciRenderData(candleData, computed, config);
+                const fibLineWidth = Math.min(4, Math.max(1, Math.round(config.lineWidth))) as 1 | 2 | 3 | 4;
+
+                const supertrendSeries = chart.addSeries(LineSeries, {
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+                supertrendSeries.setData(render.supertrendData as any);
+                supertrendSeries.applyOptions({ visible: config.trendOn });
+
+                const levelSeries = fibonacciLevelOrder.map((levelKey) => {
+                    const series = chart.addSeries(LineSeries, {
+                        color: config.lineColor,
+                        lineWidth: fibLineWidth,
+                        lineStyle: levelKey === 'level5' ? LineStyle.Dotted : LineStyle.Solid,
+                        priceLineVisible: false,
+                        lastValueVisible: false,
+                        crosshairMarkerVisible: false,
+                    });
+                    series.setData(render.levelData[levelKey] as any);
+                    const levelVisible = config.historyMode !== 0 && (levelKey !== 'level5' || config.showMidline);
+                    series.applyOptions({ visible: levelVisible });
+                    return series;
+                });
+
+                const trendlineSeries = chart.addSeries(LineSeries, {
+                    color: config.lineColor,
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+                trendlineSeries.setData(render.trendlineData as any);
+                trendlineSeries.applyOptions({ visible: config.historyMode !== 0 && config.showTrendline });
+
+                overlaySeriesRef.current.set(id, { primary: supertrendSeries, extras: [...levelSeries, trendlineSeries] });
+                data = computed.segments;
+            }
+
+            dispatch({ type: 'OVERLAY_ADDED', overlay: { id, type, visible: true, config, data } });
+        }
+
         return id;
     }, [candleData]);
 
@@ -384,7 +444,7 @@ export function ChartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'OVERLAY_REMOVED', id });
     }, []);
 
-    const updateOverlayConfig = useCallback(<T extends VolumeConfig | MAConfig | MarketBiasConfig>(id: string, configUpdates: Partial<T>) => {
+    const updateOverlayConfig = useCallback(<T extends VolumeConfig | MAConfig | MarketBiasConfig | FibonacciConfig>(id: string, configUpdates: Partial<T>) => {
         const currentState = stateRef.current;
         const overlay = currentState.overlays[id];
         if (!overlay) return;
@@ -448,6 +508,77 @@ export function ChartProvider({ children }: { children: ReactNode }) {
 
             dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data });
         }
+
+        if (overlay.type === 'fibonacci') {
+            const fibConfig = newConfig as FibonacciConfig;
+            const computed = computeFibonacciData(candleData, fibConfig);
+            const render = buildFibonacciRenderData(candleData, computed, fibConfig);
+            const fibLineWidth = Math.min(4, Math.max(1, Math.round(fibConfig.lineWidth))) as 1 | 2 | 3 | 4;
+            const showFibLevels = overlay.visible && fibConfig.historyMode !== 0;
+            const showTrendline = showFibLevels && fibConfig.showTrendline;
+
+            const chart = chartRef.current;
+            let targetEntry = entry;
+
+            if (!targetEntry && chart) {
+                const supertrendSeries = chart.addSeries(LineSeries, {
+                    lineWidth: 2,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+                const levelSeries = fibonacciLevelOrder.map((levelKey) => chart.addSeries(LineSeries, {
+                    color: fibConfig.lineColor,
+                    lineWidth: fibLineWidth,
+                    lineStyle: levelKey === 'level5' ? LineStyle.Dotted : LineStyle.Solid,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                }));
+                const trendlineSeries = chart.addSeries(LineSeries, {
+                    color: fibConfig.lineColor,
+                    lineWidth: 1,
+                    lineStyle: LineStyle.Dashed,
+                    priceLineVisible: false,
+                    lastValueVisible: false,
+                    crosshairMarkerVisible: false,
+                });
+                targetEntry = { primary: supertrendSeries, extras: [...levelSeries, trendlineSeries] };
+                overlaySeriesRef.current.set(id, targetEntry);
+            }
+
+            if (targetEntry) {
+                targetEntry.primary.setData(render.supertrendData as any);
+                targetEntry.primary.applyOptions({
+                    visible: overlay.visible && fibConfig.trendOn,
+                });
+
+                fibonacciLevelOrder.forEach((levelKey, index) => {
+                    const series = targetEntry?.extras[index];
+                    if (!series) return;
+                    series.setData(render.levelData[levelKey] as any);
+                    const levelVisible = showFibLevels && (levelKey !== 'level5' || fibConfig.showMidline);
+                    series.applyOptions({
+                        color: fibConfig.lineColor,
+                        lineWidth: fibLineWidth,
+                        lineStyle: levelKey === 'level5' ? LineStyle.Dotted : LineStyle.Solid,
+                        visible: levelVisible,
+                    });
+                });
+
+                const trendlineSeries = targetEntry.extras[fibonacciLevelOrder.length];
+                if (trendlineSeries) {
+                    trendlineSeries.setData(render.trendlineData as any);
+                    trendlineSeries.applyOptions({
+                        color: fibConfig.lineColor,
+                        lineStyle: LineStyle.Dashed,
+                        visible: showTrendline,
+                    });
+                }
+            }
+
+            dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data: computed.segments });
+        }
     }, [candleData]);
 
     const toggleOverlay = useCallback((id: string) => {
@@ -468,6 +599,21 @@ export function ChartProvider({ children }: { children: ReactNode }) {
                 const config = overlay.config as MarketBiasConfig;
                 entry.primary.applyOptions({ visible: newVisible && config.showHACandles });
                 entry.extras[0]?.applyOptions({ visible: newVisible && config.showMarketBias });
+            }
+
+            if (overlay.type === 'fibonacci') {
+                const config = overlay.config as FibonacciConfig;
+                const showFibLevels = newVisible && config.historyMode !== 0;
+                entry.primary.applyOptions({ visible: newVisible && config.trendOn });
+
+                fibonacciLevelOrder.forEach((levelKey, index) => {
+                    const levelVisible = showFibLevels && (levelKey !== 'level5' || config.showMidline);
+                    entry.extras[index]?.applyOptions({ visible: levelVisible });
+                });
+
+                entry.extras[fibonacciLevelOrder.length]?.applyOptions({
+                    visible: showFibLevels && config.showTrendline,
+                });
             }
 
             if (overlay.type === 'volume' && newVisible) {
