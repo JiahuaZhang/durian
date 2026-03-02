@@ -4,16 +4,60 @@ import type { CandleData } from '../../context/ChartContext';
 import type { MetaField } from '../meta';
 import { getDefaultConfig, type DeriveConfig } from '../meta';
 
+export const fibonacciRetracementLevelOrder = [
+    'level0',
+    'level236',
+    'level382',
+    'level5',
+    'level618',
+    'level786',
+    'level1',
+] as const;
+
+export const fibonacciExtensionLevelOrder = [
+    'ext1272',
+    'ext1414',
+    'ext1618',
+    'ext2',
+    'ext2618',
+] as const;
+
+// Backward-compatible alias used by context wiring.
+export const fibonacciLevelOrder = fibonacciRetracementLevelOrder;
+
+export type RetracementLevelKey = typeof fibonacciRetracementLevelOrder[number];
+export type ExtensionLevelKey = typeof fibonacciExtensionLevelOrder[number];
+
+const RETRACEMENT_RATIOS: Record<RetracementLevelKey, number> = {
+    level0: 0,
+    level236: 0.236,
+    level382: 0.382,
+    level5: 0.5,
+    level618: 0.618,
+    level786: 0.786,
+    level1: 1,
+};
+
+const EXTENSION_RATIOS: Record<ExtensionLevelKey, number> = {
+    ext1272: 1.272,
+    ext1414: 1.414,
+    ext1618: 1.618,
+    ext2: 2,
+    ext2618: 2.618,
+};
+
+const RETRACEMENT_REFERENCE_LEVELS = [0.236, 0.382, 0.5, 0.618, 0.786, 1] as const;
+
 export const FibonacciMeta = [
-    { key: 'trendOn', label: 'Show Supertrend', group: 'Trend', type: 'boolean', default: true },
-    { key: 'trendFactor', label: 'Supertrend Factor', group: 'Trend', type: 'number', default: 4, min: 0.1, max: 20, step: 0.1 },
-    { key: 'trendPeriod', label: 'Supertrend ATR Period', group: 'Trend', type: 'number', default: 25, min: 1, max: 500 },
-    { key: 'bullColor', label: 'Bullish Trend Color', group: 'Trend', type: 'color', default: '#26905d' },
-    { key: 'bearColor', label: 'Bearish Trend Color', group: 'Trend', type: 'color', default: '#74286d' },
+    { key: 'trendOn', label: 'Show Supertrend', group: 'Input', type: 'boolean', default: true },
+    { key: 'trendFactor', label: 'Supertrend Factor', group: 'Input', type: 'number', default: 4, min: 0.1, max: 20, step: 0.1 },
+    { key: 'trendPeriod', label: 'Supertrend ATR Period', group: 'Input', type: 'number', default: 25, min: 1, max: 500 },
+    { key: 'bullColor', label: 'Bullish Trend Color', group: 'Style', type: 'color', default: '#51a2ff' },
+    { key: 'bearColor', label: 'Bearish Trend Color', group: 'Style', type: 'color', default: '#c27aff' },
     {
         key: 'historyMode',
         label: 'Historical Ranges',
-        group: 'Display',
+        group: 'Input',
         type: 'select',
         default: 1,
         options: [
@@ -22,9 +66,10 @@ export const FibonacciMeta = [
             { value: 2, label: 'All Trends' },
         ] as const,
     },
-    { key: 'showTrendline', label: 'Show Diagonal Trendline', group: 'Display', type: 'boolean', default: true },
-    { key: 'showMidline', label: 'Show 0.5 Midline', group: 'Display', type: 'boolean', default: true },
-    { key: 'lineColor', label: 'Range Line Color', group: 'Style', type: 'color', default: '#0f172a' },
+    { key: 'showRetracement', label: 'Show Retracement', group: 'Input', type: 'boolean', default: true },
+    { key: 'showExtension', label: 'Show Extension', group: 'Input', type: 'boolean', default: false },
+    { key: 'showTrendline', label: 'Show Diagonal Trendline', group: 'Input', type: 'boolean', default: true },
+    { key: 'showMidline', label: 'Show 0.5 Midline', group: 'Input', type: 'boolean', default: true },
     {
         key: 'lineWidth',
         label: 'Range Line Width',
@@ -38,32 +83,40 @@ export const FibonacciMeta = [
             { value: 4, label: '4' },
         ] as const,
     },
-    { key: 'level236', label: 'Level 0.236', group: 'Levels', type: 'number', default: 0.236, min: -2, max: 3, step: 0.001 },
-    { key: 'level382', label: 'Level 0.382', group: 'Levels', type: 'number', default: 0.382, min: -2, max: 3, step: 0.001 },
-    { key: 'level618', label: 'Level 0.618', group: 'Levels', type: 'number', default: 0.618, min: -2, max: 3, step: 0.001 },
-    { key: 'level786', label: 'Level 0.786', group: 'Levels', type: 'number', default: 0.786, min: -2, max: 3, step: 0.001 },
+    { key: 'level0LineColor', label: '0 Line', group: 'Style', type: 'color', default: '#787b86' },
+    { key: 'level236LineColor', label: '0.236 Line', group: 'Style', type: 'color', default: '#f23645' },
+    { key: 'level382LineColor', label: '0.382 Line', group: 'Style', type: 'color', default: '#ff9800' },
+    { key: 'level5LineColor', label: '0.5 Line', group: 'Style', type: 'color', default: '#4caf50' },
+    { key: 'level618LineColor', label: '0.618 Line', group: 'Style', type: 'color', default: '#26a69a' },
+    { key: 'level786LineColor', label: '0.786 Line', group: 'Style', type: 'color', default: '#2196f3' },
+    { key: 'level1LineColor', label: '1 Line', group: 'Style', type: 'color', default: '#787b86' },
+    { key: 'level0BgColor', label: '0 Background', group: 'Style', type: 'color', default: '#f2364522' },
+    { key: 'level236BgColor', label: '0.236 Background', group: 'Style', type: 'color', default: '#ff572222' },
+    { key: 'level382BgColor', label: '0.382 Background', group: 'Style', type: 'color', default: '#ff980022' },
+    { key: 'level5BgColor', label: '0.5 Background', group: 'Style', type: 'color', default: '#4caf5022' },
+    { key: 'level618BgColor', label: '0.618 Background', group: 'Style', type: 'color', default: '#26a69a22' },
+    { key: 'level786BgColor', label: '0.786 Background', group: 'Style', type: 'color', default: '#2196f322' },
+    { key: 'level1BgColor', label: '1 Background', group: 'Style', type: 'color', default: '#9e9e9e22' },
+    { key: 'ext1272LineColor', label: '1.272 Line', group: 'Style - Extension', type: 'color', default: '#8e24aa' },
+    { key: 'ext1414LineColor', label: '1.414 Line', group: 'Style - Extension', type: 'color', default: '#7b1fa2' },
+    { key: 'ext1618LineColor', label: '1.618 Line', group: 'Style - Extension', type: 'color', default: '#6a1b9a' },
+    { key: 'ext2LineColor', label: '2.0 Line', group: 'Style - Extension', type: 'color', default: '#5e35b1' },
+    { key: 'ext2618LineColor', label: '2.618 Line', group: 'Style - Extension', type: 'color', default: '#512da8' },
+    { key: 'ext1272BgColor', label: '1.272 Background', group: 'Style - Extension', type: 'color', default: '#8e24aa22' },
+    { key: 'ext1414BgColor', label: '1.414 Background', group: 'Style - Extension', type: 'color', default: '#7b1fa222' },
+    { key: 'ext1618BgColor', label: '1.618 Background', group: 'Style - Extension', type: 'color', default: '#6a1b9a22' },
+    { key: 'ext2BgColor', label: '2.0 Background', group: 'Style - Extension', type: 'color', default: '#5e35b122' },
+    { key: 'ext2618BgColor', label: '2.618 Background', group: 'Style - Extension', type: 'color', default: '#512da822' },
 ] as const satisfies readonly MetaField[];
 
 export type FibonacciConfig = DeriveConfig<typeof FibonacciMeta>;
-
 export const defaultFibonacciConfig: FibonacciConfig = getDefaultConfig(FibonacciMeta);
 
 export type FibonacciHistoryMode = 0 | 1 | 2;
 export type TrendDirection = 1 | -1;
 
-export const fibonacciLevelOrder = [
-    'level0',
-    'level236',
-    'level382',
-    'level5',
-    'level618',
-    'level786',
-    'level1',
-] as const;
-
-export type FibonacciLevelKey = typeof fibonacciLevelOrder[number];
-
-export type FibonacciLevels = Record<FibonacciLevelKey, number>;
+export type FibonacciRetracementLevels = Record<RetracementLevelKey, number>;
+export type FibonacciExtensionLevels = Record<ExtensionLevelKey, number>;
 
 export type FibonacciSegment = {
     trend: TrendDirection;
@@ -73,7 +126,15 @@ export type FibonacciSegment = {
     lowIndex: number;
     high: number;
     highIndex: number;
-    levels: FibonacciLevels;
+    levels: FibonacciRetracementLevels;
+};
+
+export type FibonacciExtensionLeg = {
+    trend: TrendDirection;
+    anchorIndex: number;
+    retracementRatio: number;
+    nearestRetracementLevel: number;
+    levels: FibonacciExtensionLevels;
 };
 
 export type FibonacciComputation = {
@@ -83,15 +144,43 @@ export type FibonacciComputation = {
         direction: TrendDirection;
     }>;
     segments: FibonacciSegment[];
+    extensions: FibonacciExtensionLeg[];
 };
 
 type RenderPoint = LineData<Time> | WhitespaceData<Time>;
 
 export type FibonacciRenderData = {
     supertrendData: LineData<Time>[];
-    levelData: Record<FibonacciLevelKey, RenderPoint[]>;
+    retracementData: Record<RetracementLevelKey, RenderPoint[]>;
+    extensionData: Record<ExtensionLevelKey, RenderPoint[]>;
     trendlineData: RenderPoint[];
 };
+
+const retracementLineColorKey: Record<RetracementLevelKey, keyof FibonacciConfig> = {
+    level0: 'level0LineColor',
+    level236: 'level236LineColor',
+    level382: 'level382LineColor',
+    level5: 'level5LineColor',
+    level618: 'level618LineColor',
+    level786: 'level786LineColor',
+    level1: 'level1LineColor',
+};
+
+const extensionLineColorKey: Record<ExtensionLevelKey, keyof FibonacciConfig> = {
+    ext1272: 'ext1272LineColor',
+    ext1414: 'ext1414LineColor',
+    ext1618: 'ext1618LineColor',
+    ext2: 'ext2LineColor',
+    ext2618: 'ext2618LineColor',
+};
+
+export function getRetracementLineColor(config: FibonacciConfig, key: RetracementLevelKey): string {
+    return config[retracementLineColorKey[key]] as string;
+}
+
+export function getExtensionLineColor(config: FibonacciConfig, key: ExtensionLevelKey): string {
+    return config[extensionLineColorKey[key]] as string;
+}
 
 export function getFibonacciHistoryModeLabel(mode: number): string {
     if (mode === 0) return 'None';
@@ -110,8 +199,6 @@ function computeAtr(candleData: CandleData[], period: number): number[] {
         return [Math.max(candleData[0].high - candleData[0].low, 0)];
     }
 
-    // technicalindicators ATR requires enough history and returns only computed points.
-    // Clamp period and forward-fill the leading gap so the result aligns to candleData length.
     const p = Math.max(1, Math.min(Math.floor(period), candleData.length - 1));
     const atrValues = ATR.calculate({
         high: candleData.map(c => c.high),
@@ -174,12 +261,24 @@ function computeSupertrend(candleData: CandleData[], factor: number, atrPeriod: 
     return { supertrend, direction };
 }
 
+function buildRetracementLevels(level0: number, level1: number): FibonacciRetracementLevels {
+    const distance = level1 - level0;
+    return {
+        level0,
+        level236: level0 + distance * RETRACEMENT_RATIOS.level236,
+        level382: level0 + distance * RETRACEMENT_RATIOS.level382,
+        level5: level0 + distance * RETRACEMENT_RATIOS.level5,
+        level618: level0 + distance * RETRACEMENT_RATIOS.level618,
+        level786: level0 + distance * RETRACEMENT_RATIOS.level786,
+        level1,
+    };
+}
+
 function buildSegment(
     candleData: CandleData[],
     startIndex: number,
     endIndex: number,
     trend: TrendDirection,
-    config: FibonacciConfig,
 ): FibonacciSegment {
     let low = Number.POSITIVE_INFINITY;
     let lowIndex = startIndex;
@@ -200,17 +299,6 @@ function buildSegment(
 
     const level0 = trend === 1 ? low : high;
     const level1 = trend === 1 ? high : low;
-    const distance = level1 - level0;
-
-    const levels: FibonacciLevels = {
-        level0,
-        level236: level0 + distance * config.level236,
-        level382: level0 + distance * config.level382,
-        level5: level0 + distance * 0.5,
-        level618: level0 + distance * config.level618,
-        level786: level0 + distance * config.level786,
-        level1,
-    };
 
     return {
         trend,
@@ -220,19 +308,67 @@ function buildSegment(
         lowIndex,
         high,
         highIndex,
+        levels: buildRetracementLevels(level0, level1),
+    };
+}
+
+function getNearestRetracementLevel(value: number): number {
+    return RETRACEMENT_REFERENCE_LEVELS.reduce((best, level) => (
+        Math.abs(level - value) < Math.abs(best - value) ? level : best
+    ), RETRACEMENT_REFERENCE_LEVELS[0]);
+}
+
+function buildExtensionLeg(first: FibonacciSegment, second: FibonacciSegment): FibonacciExtensionLeg | null {
+    if (first.trend === second.trend) return null;
+
+    const trend = first.trend;
+    const impulseStart = first.levels.level0;
+    const impulseEnd = first.levels.level1;
+    const move = Math.abs(impulseEnd - impulseStart);
+    if (move <= Number.EPSILON) return null;
+
+    const retracementEndPrice = trend === 1 ? second.low : second.high;
+    const anchorIndex = trend === 1 ? second.lowIndex : second.highIndex;
+    const retracementRatio = trend === 1
+        ? (impulseEnd - retracementEndPrice) / move
+        : (retracementEndPrice - impulseEnd) / move;
+
+    const levels: FibonacciExtensionLevels = {
+        ext1272: trend === 1 ? retracementEndPrice + move * EXTENSION_RATIOS.ext1272 : retracementEndPrice - move * EXTENSION_RATIOS.ext1272,
+        ext1414: trend === 1 ? retracementEndPrice + move * EXTENSION_RATIOS.ext1414 : retracementEndPrice - move * EXTENSION_RATIOS.ext1414,
+        ext1618: trend === 1 ? retracementEndPrice + move * EXTENSION_RATIOS.ext1618 : retracementEndPrice - move * EXTENSION_RATIOS.ext1618,
+        ext2: trend === 1 ? retracementEndPrice + move * EXTENSION_RATIOS.ext2 : retracementEndPrice - move * EXTENSION_RATIOS.ext2,
+        ext2618: trend === 1 ? retracementEndPrice + move * EXTENSION_RATIOS.ext2618 : retracementEndPrice - move * EXTENSION_RATIOS.ext2618,
+    };
+
+    return {
+        trend,
+        anchorIndex,
+        retracementRatio,
+        nearestRetracementLevel: getNearestRetracementLevel(retracementRatio),
         levels,
     };
 }
 
-function createEmptyLevelData(): Record<FibonacciLevelKey, RenderPoint[]> {
+function createEmptyRetracementData(candleData: CandleData[]): Record<RetracementLevelKey, RenderPoint[]> {
     return {
-        level0: [],
-        level236: [],
-        level382: [],
-        level5: [],
-        level618: [],
-        level786: [],
-        level1: [],
+        level0: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level236: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level382: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level5: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level618: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level786: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        level1: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+    };
+}
+
+function createEmptyExtensionData(candleData: CandleData[]): Record<ExtensionLevelKey, RenderPoint[]> {
+    return {
+        ext1272: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        ext1414: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        ext1618: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        ext2: candleData.map(candle => ({ time: candle.time as unknown as Time })),
+        ext2618: candleData.map(candle => ({ time: candle.time as unknown as Time })),
     };
 }
 
@@ -244,17 +380,24 @@ function getVisibleSegments(segments: FibonacciSegment[], mode: FibonacciHistory
     return segments;
 }
 
+function getVisibleExtensions(extensions: FibonacciExtensionLeg[], mode: FibonacciHistoryMode): FibonacciExtensionLeg[] {
+    if (mode === 0) return [];
+    if (mode === 1) {
+        return extensions.length > 0 ? [extensions[extensions.length - 1]] : [];
+    }
+    return extensions;
+}
+
 export function computeFibonacciData(
     candleData: CandleData[],
     config: FibonacciConfig = defaultFibonacciConfig,
 ): FibonacciComputation {
     if (candleData.length === 0) {
-        return { supertrend: [], segments: [] };
+        return { supertrend: [], segments: [], extensions: [] };
     }
 
     const trendFactor = Math.max(0.1, config.trendFactor);
     const trendPeriod = Math.max(1, Math.floor(config.trendPeriod));
-
     const { supertrend, direction } = computeSupertrend(candleData, trendFactor, trendPeriod);
 
     const segments: FibonacciSegment[] = [];
@@ -268,8 +411,14 @@ export function computeFibonacciData(
 
         const segmentEnd = i - 1;
         const trend = direction[segmentEnd];
-        segments.push(buildSegment(candleData, segmentStart, segmentEnd, trend, config));
+        segments.push(buildSegment(candleData, segmentStart, segmentEnd, trend));
         segmentStart = i;
+    }
+
+    const extensions: FibonacciExtensionLeg[] = [];
+    for (let i = 0; i < segments.length - 1; i++) {
+        const leg = buildExtensionLeg(segments[i], segments[i + 1]);
+        if (leg) extensions.push(leg);
     }
 
     return {
@@ -279,6 +428,7 @@ export function computeFibonacciData(
             direction: direction[index],
         })),
         segments,
+        extensions,
     };
 }
 
@@ -289,6 +439,9 @@ export function buildFibonacciRenderData(
 ): FibonacciRenderData {
     const historyMode = normalizeHistoryMode(config.historyMode);
     const visibleSegments = getVisibleSegments(computed.segments, historyMode);
+    const visibleExtensions = getVisibleExtensions(computed.extensions, historyMode)
+        .slice()
+        .sort((a, b) => a.anchorIndex - b.anchorIndex);
 
     const supertrendData: LineData<Time>[] = config.trendOn
         ? computed.supertrend.map(point => ({
@@ -298,23 +451,42 @@ export function buildFibonacciRenderData(
         }))
         : [];
 
-    const levelData = createEmptyLevelData();
-    for (const key of fibonacciLevelOrder) {
-        levelData[key] = candleData.map(candle => ({ time: candle.time as unknown as Time }));
+    const retracementData = createEmptyRetracementData(candleData);
+    if (config.showRetracement) {
+        visibleSegments.forEach(segment => {
+            for (const key of fibonacciRetracementLevelOrder) {
+                if (key === 'level5' && !config.showMidline) continue;
+                const level = segment.levels[key];
+                for (let i = segment.startIndex; i <= segment.endIndex; i++) {
+                    retracementData[key][i] = {
+                        time: candleData[i].time as unknown as Time,
+                        value: level,
+                    };
+                }
+            }
+        });
     }
 
-    visibleSegments.forEach(segment => {
-        for (const key of fibonacciLevelOrder) {
-            if (key === 'level5' && !config.showMidline) continue;
-            const level = segment.levels[key];
-            for (let i = segment.startIndex; i <= segment.endIndex; i++) {
-                levelData[key][i] = {
-                    time: candleData[i].time as unknown as Time,
-                    value: level,
-                };
+    const extensionData = createEmptyExtensionData(candleData);
+    if (config.showExtension) {
+        visibleExtensions.forEach((extension, index) => {
+            const startIndex = Math.max(0, Math.min(candleData.length - 1, extension.anchorIndex));
+            const endIndex = index < visibleExtensions.length - 1
+                ? Math.min(candleData.length - 1, visibleExtensions[index + 1].anchorIndex - 1)
+                : candleData.length - 1;
+            if (startIndex > endIndex) return;
+
+            for (const key of fibonacciExtensionLevelOrder) {
+                const value = extension.levels[key];
+                for (let i = startIndex; i <= endIndex; i++) {
+                    extensionData[key][i] = {
+                        time: candleData[i].time as unknown as Time,
+                        value,
+                    };
+                }
             }
-        }
-    });
+        });
+    }
 
     const trendlineData: RenderPoint[] = candleData.map(candle => ({ time: candle.time as unknown as Time }));
     if (config.showTrendline) {
@@ -338,5 +510,5 @@ export function buildFibonacciRenderData(
         });
     }
 
-    return { supertrendData, levelData, trendlineData };
+    return { supertrendData, retracementData, extensionData, trendlineData };
 }
