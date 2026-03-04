@@ -30,8 +30,7 @@ const getOverlayLabel = (overlay: OverlayIndicator) => {
         }
         case 'fibonacci': {
             const config = overlay.config as FibonacciConfig;
-            const extensionTag = config.showExtension ? '+Ext' : '';
-            return `Fib(${config.trendFactor}, ${getFibonacciHistoryModeLabel(config.historyMode)}${extensionTag})`;
+            return `Fib(${config.trendFactor}, ${getFibonacciHistoryModeLabel(config.historyMode)})`;
         }
         default: return overlay.type;
     }

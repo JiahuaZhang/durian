@@ -4,12 +4,8 @@ import {
     buildFibonacciRenderData,
     computeFibonacciData,
     defaultFibonacciConfig,
-    fibonacciExtensionBandOrder,
-    fibonacciExtensionLevelOrder,
     fibonacciRetracementBandOrder,
     fibonacciRetracementLevelOrder,
-    getExtensionBgColor,
-    getExtensionLineColor,
     getRetracementBgColor,
     getRetracementLineColor,
     type FibonacciConfig,
@@ -243,7 +239,6 @@ function createFibonacciSeriesExtras(
     render: FibonacciRenderData,
     fibConfig: FibonacciConfig,
     showRetracement: boolean,
-    showExtension: boolean,
     showTrendline: boolean,
 ): ISeriesApi<any>[] {
     const fibLineWidth = Math.min(4, Math.max(1, Math.round(fibConfig.lineWidth))) as 1 | 2 | 3 | 4;
@@ -273,30 +268,7 @@ function createFibonacciSeriesExtras(
         }
     }
 
-    for (const bandKey of fibonacciExtensionBandOrder) {
-        const color = getExtensionBgColor(fibConfig, bandKey);
-        for (const band of render.extensionZoneBands[bandKey]) {
-            const series = chart.addSeries(BaselineSeries, {
-                baseValue: { type: 'price' as const, price: band.bottomPrice },
-                topFillColor1: color,
-                topFillColor2: color,
-                topLineColor: 'transparent',
-                bottomFillColor1: 'transparent',
-                bottomFillColor2: 'transparent',
-                bottomLineColor: 'transparent',
-                lineWidth: 1,
-                lineVisible: false,
-                crosshairMarkerVisible: false,
-                priceLineVisible: false,
-                lastValueVisible: false,
-            });
-            series.setData(band.data as any);
-            series.applyOptions({ visible: showExtension });
-            extras.push(series);
-        }
-    }
-
-    // Line series (fixed count: 7 retracement + 5 extension + 1 trendline)
+    // Line series (7 retracement + trendlines)
     for (const levelKey of fibonacciRetracementLevelOrder) {
         const series = chart.addSeries(LineSeries, {
             color: getRetracementLineColor(fibConfig, levelKey),
@@ -309,20 +281,6 @@ function createFibonacciSeriesExtras(
         series.setData(render.retracementData[levelKey] as any);
         const levelVisible = showRetracement && (levelKey !== 'level5' || fibConfig.showMidline);
         series.applyOptions({ visible: levelVisible });
-        extras.push(series);
-    }
-
-    for (const levelKey of fibonacciExtensionLevelOrder) {
-        const series = chart.addSeries(LineSeries, {
-            color: getExtensionLineColor(fibConfig, levelKey),
-            lineWidth: fibLineWidth,
-            lineStyle: LineStyle.Dashed,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            crosshairMarkerVisible: false,
-        });
-        series.setData(render.extensionData[levelKey] as any);
-        series.applyOptions({ visible: showExtension });
         extras.push(series);
     }
 
@@ -428,7 +386,6 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                 const computed = computeFibonacciData(candleData, fibConfig);
                 const render = buildFibonacciRenderData(candleData, computed, fibConfig);
                 const showRetracement = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showRetracement;
-                const showExtension = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showExtension;
                 const showTrendline = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showTrendline;
 
                 const supertrendSeries = chart.addSeries(LineSeries, {
@@ -437,7 +394,7 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                 supertrendSeries.setData(render.supertrendData as any);
                 supertrendSeries.applyOptions({ visible: overlay.visible && fibConfig.trendOn });
 
-                const extras = createFibonacciSeriesExtras(chart, render, fibConfig, showRetracement, showExtension, showTrendline);
+                const extras = createFibonacciSeriesExtras(chart, render, fibConfig, showRetracement, showTrendline);
                 overlaySeriesRef.current.set(overlay.id, { primary: supertrendSeries, extras });
                 const data = computed.segments;
                 dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id: overlay.id, config: overlay.config, data });
@@ -540,7 +497,6 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                 const computed = computeFibonacciData(candleData, config);
                 const render = buildFibonacciRenderData(candleData, computed, config);
                 const showRetracement = config.historyMode !== 0 && config.showRetracement;
-                const showExtension = config.historyMode !== 0 && config.showExtension;
                 const showTrendline = config.historyMode !== 0 && config.showTrendline;
 
                 const supertrendSeries = chart.addSeries(LineSeries, {
@@ -552,7 +508,7 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                 supertrendSeries.setData(render.supertrendData as any);
                 supertrendSeries.applyOptions({ visible: config.trendOn });
 
-                const extras = createFibonacciSeriesExtras(chart, render, config, showRetracement, showExtension, showTrendline);
+                const extras = createFibonacciSeriesExtras(chart, render, config, showRetracement, showTrendline);
 
                 overlaySeriesRef.current.set(id, {
                     primary: supertrendSeries,
@@ -664,7 +620,6 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
             const computed = computeFibonacciData(candleData, fibConfig);
             const render = buildFibonacciRenderData(candleData, computed, fibConfig);
             const showRetracement = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showRetracement;
-            const showExtension = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showExtension;
             const showTrendline = overlay.visible && fibConfig.historyMode !== 0 && fibConfig.showTrendline;
 
             const chart = chartRef.current;
@@ -692,7 +647,7 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                 for (const s of targetEntry.extras) {
                     try { chart.removeSeries(s); } catch { /* already removed */ }
                 }
-                targetEntry.extras = createFibonacciSeriesExtras(chart, render, fibConfig, showRetracement, showExtension, showTrendline);
+                targetEntry.extras = createFibonacciSeriesExtras(chart, render, fibConfig, showRetracement, showTrendline);
             }
 
             dispatch({ type: 'OVERLAY_CONFIG_UPDATED', id, config: newConfig, data: computed.segments });
@@ -722,33 +677,22 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
             if (overlay.type === 'fibonacci') {
                 const config = overlay.config as FibonacciConfig;
                 const showRetracement = newVisible && config.historyMode !== 0 && config.showRetracement;
-                const showExtension = newVisible && config.historyMode !== 0 && config.showExtension;
                 const showTrendline = newVisible && config.historyMode !== 0 && config.showTrendline;
                 entry.primary.applyOptions({ visible: newVisible && config.trendOn });
 
-                // Extras layout: [zone BaselineSeries...] [12 level LineSeries] [N trendline LineSeries]
-                // Trendline series come after level series; zone series come before levels.
-                // We need the zone count. Since zones are pushed first and we know the level+trendline count
-                // structure, we note: total = zoneCount + 12 + trendlineCount.
-                // But we don't know trendlineCount here. However, we know the pattern:
-                //   - Zones are BaselineSeries (have baseValue option)
-                //   - Everything after zones is LineSeries
-                // Count zones by finding where LineSeries start:
+                // Extras layout: [zone BaselineSeries...] [7 retracement LineSeries] [N trendline LineSeries]
                 let zoneEnd = 0;
                 while (zoneEnd < entry.extras.length) {
-                    // LineSeries level lines have lineStyle property set, zones don't
-                    // Simplest: zones are first, and there are exactly (total - levelCount - trendlineCount) of them
-                    // Since we can't distinguish at runtime, just count all non-LineSeries:
                     try {
                         const opts = (entry.extras[zoneEnd] as any).options();
-                        if (opts.lineStyle !== undefined) break; // This is a LineSeries (level or trendline)
+                        if (opts.lineStyle !== undefined) break;
                     } catch { break; }
                     zoneEnd++;
                 }
 
                 // Toggle zone series
                 for (let i = 0; i < zoneEnd; i++) {
-                    entry.extras[i]?.applyOptions({ visible: showRetracement || showExtension });
+                    entry.extras[i]?.applyOptions({ visible: showRetracement });
                 }
 
                 // Toggle retracement level lines (7)
@@ -757,14 +701,8 @@ export function ChartProvider({ children }: { children: ReactNode; }) {
                     entry.extras[zoneEnd + index]?.applyOptions({ visible: levelVisible });
                 });
 
-                // Toggle extension level lines (5)
-                const extStart = zoneEnd + fibonacciRetracementLevelOrder.length;
-                fibonacciExtensionLevelOrder.forEach((_, index) => {
-                    entry.extras[extStart + index]?.applyOptions({ visible: showExtension });
-                });
-
-                // Toggle trendline series (all remaining)
-                const trendStart = extStart + fibonacciExtensionLevelOrder.length;
+                // Toggle trendline series (all remaining after retracement lines)
+                const trendStart = zoneEnd + fibonacciRetracementLevelOrder.length;
                 for (let i = trendStart; i < entry.extras.length; i++) {
                     entry.extras[i]?.applyOptions({ visible: showTrendline });
                 }
