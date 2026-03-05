@@ -1,5 +1,6 @@
-import { type EMALegend, type FibonacciLegend, type MainLegend, type MarketBiasLegend, type OverlayIndicator, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
+import { type EMALegend, type FibExtLegend, type FibonacciLegend, type MainLegend, type MarketBiasLegend, type OverlayIndicator, type SMALegend, type VolumeConfig, type VolumeLegend, useLegend, useOverlays } from "./context/ChartContext";
 import { FibonacciMeta, getFibonacciHistoryModeLabel, type FibonacciConfig } from "./plugin/fibonacci/fibonacci";
+import { FibExtMeta, type FibExtConfig } from "./plugin/fibonacci-ext/fibonacci-ext";
 import { MarketBiasMeta, type MarketBiasConfig } from "./plugin/market-bias/market-bias";
 import type { MAConfig } from "./plugin/moving-average/ma";
 import { Eye, EyeOff, Settings, X } from "lucide-react";
@@ -32,6 +33,10 @@ const getOverlayLabel = (overlay: OverlayIndicator) => {
             const config = overlay.config as FibonacciConfig;
             return `Fib(${config.trendFactor}, ${getFibonacciHistoryModeLabel(config.historyMode)})`;
         }
+        case 'fibonacci-ext': {
+            const config = overlay.config as FibExtConfig;
+            return `FibExt(${config.deviation}, ${config.depth})`;
+        }
         default: return overlay.type;
     }
 }
@@ -39,7 +44,7 @@ const getOverlayLabel = (overlay: OverlayIndicator) => {
 // Get formatted value for overlay based on type
 const getOverlayValueFromLegend = (
     type: string,
-    legend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | FibonacciLegend | undefined
+    legend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | FibonacciLegend | FibExtLegend | undefined
 ): number | undefined => {
     if (!legend) return undefined;
 
@@ -53,16 +58,18 @@ const getOverlayValueFromLegend = (
             return (legend as MarketBiasLegend).close;
         case 'fibonacci':
             return (legend as FibonacciLegend).value;
+        case 'fibonacci-ext':
+            return (legend as FibExtLegend).value;
         default:
             return undefined;
     }
 }
 
-const isPriceOverlay = (type: string) => type === 'sma' || type === 'ema' || type === 'market-bias' || type === 'fibonacci';
+const isPriceOverlay = (type: string) => type === 'sma' || type === 'ema' || type === 'market-bias' || type === 'fibonacci' || type === 'fibonacci-ext';
 
 type OverlayLegendItemProps = {
     overlay: OverlayIndicator;
-    overlayLegend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | FibonacciLegend | undefined;
+    overlayLegend: VolumeLegend | SMALegend | EMALegend | MarketBiasLegend | FibonacciLegend | FibExtLegend | undefined;
     color: string;
 }
 
@@ -107,6 +114,15 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
         return buildMetaTabs(
             FibonacciMeta,
             overlay.config as FibonacciConfig,
+            (updates) => updateOverlayConfig(overlay.id, updates)
+        );
+    }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
+
+    const fibExtTabs = useMemo(() => {
+        if (overlay.type !== 'fibonacci-ext') return [];
+        return buildMetaTabs(
+            FibExtMeta,
+            overlay.config as FibExtConfig,
             (updates) => updateOverlayConfig(overlay.id, updates)
         );
     }, [overlay.id, overlay.type, overlay.config, updateOverlayConfig]);
@@ -195,6 +211,15 @@ function OverlayLegendItem({ overlay, overlayLegend, color }: OverlayLegendItemP
                     onClose={() => setConfigOpen(false)}
                     triggerRef={cogRef}
                     tabs={fibonacciTabs}
+                />
+            )}
+            {overlay.type === 'fibonacci-ext' && (
+                <ChartConfigPopup
+                    title="Fibonacci Extension Settings"
+                    isOpen={configOpen}
+                    onClose={() => setConfigOpen(false)}
+                    triggerRef={cogRef}
+                    tabs={fibExtTabs}
                 />
             )}
         </div>

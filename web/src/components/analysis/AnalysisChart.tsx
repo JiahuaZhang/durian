@@ -174,6 +174,9 @@ function AnalysisChartInner() {
                     <AddButton onClick={() => addOverlay('fibonacci')}>
                         + Fibonacci
                     </AddButton>
+                    <AddButton onClick={() => addOverlay('fibonacci-ext')}>
+                        + Fib Extension
+                    </AddButton>
                     <AddButton onClick={() => addIndicator('macd')}>
                         + MACD
                     </AddButton>
